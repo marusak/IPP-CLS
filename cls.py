@@ -49,7 +49,10 @@ def getToken(acc):
     result = re.match("\s*(\w+|\{|\}|\(|\)|;|\=|,|:|\*|&)\s*([\s\S]*)",acc);
     if (result == None):
         error ("Token nepozna typ "+acc+"\n",69);
-    return (result.group(1), result.group(2))
+    if (result.group(1) == ":" and result.group(2)[0] == ":"):#:: operator
+        return ("::", result.group(2)[1:])
+    else:
+        return (result.group(1), result.group(2))
 
 def getType(token, cls):
     acc_type = ""
@@ -57,14 +60,19 @@ def getType(token, cls):
         acc_type = acc_type + token
         token, cls = getToken(cls)
         if (token not in
-            ("bool","char","int","float","double","void","wchar_t","signed","unsigned","short","long","*","&")):
+            ("void","bool","char","int","float","double","void","wchar_t","signed","unsigned","short","long","*","&")):
             return (acc_type, token+" "+cls)
     
 
 #berie cely vstup, rozprasuje ho na triedy a vlozi to do struktury
-#Vracia dictonary : key = meno_triedy
-#                   obsah = ?
+#Returns list of classes, where each class consists from:
+#   [0] = name
+#   [1] = list of parents (ClassName, type)
+#   [2] = methods (Name, return_type, arguments, defined/declared. virtual, pureVirtual, privacy)
+#   [3] = instances (Name, type, defined/declared, virtual, privacy)
+#   [4] = usings (from, what, privacy)
 def parseClasses(cls):
+    classes = []
     while (cls != ""):
         token, cls = getToken(cls);
         if (token != "class"):
@@ -72,17 +80,18 @@ def parseClasses(cls):
         #name
         className, cls = getToken(cls);
         token, cls = getToken(cls);
-        parents = ()
-        methods = ()
-        instances = ()
+        parents = []
+        methods = []
+        instances = []
+        usings = []
         while (token != "{"):
+            token, cls = getToken(cls)#comma, no control
             #read the inheritance
             if (token in ("private", "protected", "public")):
                 papaName, cls = getToken(cls);
                 parents.append((papaName, token));
             else:
                 parents.append((token, "private"));
-            token, cls = getToken(cls)#comma, no control
             token, cls = getToken(cls)
 
         #implicitly private
@@ -90,83 +99,74 @@ def parseClasses(cls):
         token, cls = getToken(cls);
         #till the end of actuall class - one loop = one method or instance or privacy modifier
         while (token != "}"):
+            virtual = False;
+            if (token == "virtual"):
+                virtual = True;
+                token, cls = getToken(cls)
+
             if (token in ("private", "protected", "public")):
                 privacy=token
                 token, cls = getToken(cls);#:, no control
                 token, cls = getToken(cls);
                 continue
-            #TODO virtual
+            if (token == "using"):
+                fromName, cls = getToken(cls)
+                token, cls = getToken(cls)#::
+                whatName, cls = getToken(cls)
+                token, cls = getToken(cls)#;
+                token, cls = getToken(cls)
+                usings.append((fromName, whatName, privacy))
+                continue
             acc_type, cls  = getType(token, cls)#get type
             token, cls = getToken(cls)#get name
             acc_name = token;
             token, cls = getToken(cls);
             if (token == ";"):#instance declaration
-                instances.append((acc_name, "declared"))
+                instances.append((acc_name, acc_type, "declared",virtual, privacy))
                 token, cls = getToken(cls);
                 continue
             if (token == "="):#instance definition
                 while (token != ";"):
                     token, cls = getToken(cls)
-                instances.append((acc_name, "defined"))
+                instances.append((acc_name, acc_type, "defined",virtual, privacy))
                 token, cls = getToken(cls);
                 continue
             if (token != "("):
                 error("I dont know the input character "+token+" "+cls,69);
             #function declaration/definition
             #read arguments
-            token, cls = getType(cls)
-            function_arguments = ()
+            token, cls = getToken(cls)
+            function_arguments = []
             while (token != ")"):
                 arg, cls = getType(token, cls);#type
+                if (arg == "void"):
+                    name, cls = getToken(cls);#)
+                    break;
                 name, cls = getToken(cls);#name
-                token, cls = getToken(cls);#comma, no control
-                token, cls = getToken(cls);#type of next argument or )
-                function_arguments.append(arg, name)
+                token, cls = getToken(cls);#comma or )
+                function_arguments.append((arg, name))
             token, cls = getToken(cls)
             if (token == ";"):#method declaration
-                methods.append((acc_name, function_arguments, "declared"))
+                methods.append((acc_name, acc_type, function_arguments,
+                    "declared",virtual,False,privacy))
                 token, cls = getToken(cls);
                 continue
             if (token == "="):#pure virtual
                 token, cls = getToken(cls);#0 no control
-                #TODO pure virtual
-            if (token != "("):
-                error("I dont know the input character "+token+" "+cls,69);
-
-
-
-                    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            virtual = false;
-            if (token == "virtual"):
-                virtual = true;
-
-
-
-
-
-
-
-        
-        
-
-
-
+                token, cls = getToken(cls);#; no control
+                methods.append((acc_name, acc_type, function_arguments,
+                    "declared",virtual,True,privacy))
+                token, cls = getToken(cls);
+                continue
+            if (token != "{"):
+                error("I dont know the input character1 "+token+" "+cls,69);
+            token, cls = getToken(cls);#;
+            methods.append((acc_name, acc_type, function_arguments, "defined",virtual, False,privacy))
+            token, cls = getToken(cls);
+        token, cls = getToken(cls); #} or another class
+        classes.append((className, parents, methods, instances, usings ))
+        #TODO declaration vs definiton (definition sfter declaration
+    return classes
 
 
 
@@ -186,7 +186,9 @@ def main():
             error("Input file is not valid or readable",2)
     inputContent = inputStream.read()
     parsedClasses = parseClasses(inputContent);
-
+    for item in parsedClasses:
+        print("\nclass----\n")
+        print(item)
 
 
 main()
