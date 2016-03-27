@@ -9,6 +9,9 @@ import os
 #TODO test na class co sa vola myclass alebo classmine, class B{};class D{}
 #TODO test kde identfikator bude Aa9_
 #TODO test kde bude int x = 10;
+#TODO test kde bude deklaracie class a kusok neskor aj definicia tej class + opace
+#TODO test na static
+#TODO test na konstuktor a destruktor
 
 
 #vytlaci chybovu hlasku a skonci
@@ -68,10 +71,12 @@ def getType(token, cls):
 #Returns list of classes, where each class consists from:
 #   [0] = name
 #   [1] = list of parents (ClassName, type)
-#   [2] = methods (Name, return_type, arguments, defined/declared. virtual, pureVirtual, privacy)
-#   [3] = instances (Name, type, defined/declared, virtual, privacy)
+#   [2] = methods (Name, return_type, arguments, defined/declared. virtual, pureVirtual, privacy,
+#   static)
+#   [3] = instances (Name, type, defined/declared, virtual, privacy, static)
 #   [4] = usings (from, what, privacy)
 def parseClasses(cls):
+    #TODO konstruktor, destruktor
     classes = []
     while (cls != ""):
         token, cls = getToken(cls);
@@ -84,7 +89,7 @@ def parseClasses(cls):
         methods = []
         instances = []
         usings = []
-        while (token != "{"):
+        while (token != "{" and token != ";"):
             token, cls = getToken(cls)#comma, no control
             #read the inheritance
             if (token in ("private", "protected", "public")):
@@ -94,14 +99,25 @@ def parseClasses(cls):
                 parents.append((token, "private"));
             token, cls = getToken(cls)
 
+        #declaration -> moze sposobit problemy len v takejto forme
+        if (token == ";"):#only class declaration
+            keys = [i[0] for i in classes]
+            if (className in keys):#uz mame danu triedu vnutri
+                classes.append = (className, "declared")
+            
+
         #implicitly private
         privacy = "private"
         token, cls = getToken(cls);
         #till the end of actuall class - one loop = one method or instance or privacy modifier
         while (token != "}"):
             virtual = False;
+            static = False;
             if (token == "virtual"):
                 virtual = True;
+                token, cls = getToken(cls)
+            if (token == "static"):
+                static = True;
                 token, cls = getToken(cls)
 
             if (token in ("private", "protected", "public")):
@@ -122,13 +138,13 @@ def parseClasses(cls):
             acc_name = token;
             token, cls = getToken(cls);
             if (token == ";"):#instance declaration
-                instances.append((acc_name, acc_type, "declared",virtual, privacy))
+                instances.append((acc_name, acc_type, "declared",virtual, privacy, static))
                 token, cls = getToken(cls);
                 continue
             if (token == "="):#instance definition
                 while (token != ";"):
                     token, cls = getToken(cls)
-                instances.append((acc_name, acc_type, "defined",virtual, privacy))
+                instances.append((acc_name, acc_type, "defined",virtual, privacy, static))
                 token, cls = getToken(cls);
                 continue
             if (token != "("):
@@ -148,26 +164,40 @@ def parseClasses(cls):
             token, cls = getToken(cls)
             if (token == ";"):#method declaration
                 methods.append((acc_name, acc_type, function_arguments,
-                    "declared",virtual,False,privacy))
+                    "declared",virtual,False,privacy, static))
                 token, cls = getToken(cls);
                 continue
             if (token == "="):#pure virtual
                 token, cls = getToken(cls);#0 no control
                 token, cls = getToken(cls);#; no control
                 methods.append((acc_name, acc_type, function_arguments,
-                    "declared",virtual,True,privacy))
+                    "declared",virtual,True,privacy, static))
                 token, cls = getToken(cls);
                 continue
             if (token != "{"):
                 error("I dont know the input character1 "+token+" "+cls,69);
             token, cls = getToken(cls);#;
-            methods.append((acc_name, acc_type, function_arguments, "defined",virtual, False,privacy))
+            methods.append((acc_name, acc_type, function_arguments, "defined",virtual,
+                False,privacy, static))
             token, cls = getToken(cls);
         token, cls = getToken(cls); #} or another class
-        classes.append((className, parents, methods, instances, usings ))
-        #TODO declaration vs definiton (definition sfter declaration
+        keys = [i[0] for i in classes]
+        if (className in keys):#uz mame danu triedu vnutri
+            adept = [x for x in classes if x[1]== "declared"]
+            if adept:
+                n = classes.index(adept)
+                classes[n] = (className, parents, methods, instances, usings )
+        else:
+            classes.append((className, parents, methods, instances, usings ))
+
     return classes
 
+
+#berie si rozparsovane funckie
+#vrati novu strukturu (podobnu tu z parsovania), ale zdene metody a instacie uz budu ramci kazdej
+#   triedy zvlast
+def makeClassesComplete(classes):
+    pass
 
 
 def main():
