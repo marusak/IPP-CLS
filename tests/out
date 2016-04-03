@@ -1,0 +1,839 @@
+HELP
+class
+A
+{
+}
+;
+class
+B
+:
+A
+{
+}
+;
+class
+C
+{
+}
+;
+class
+D
+:
+B
+,
+C
+{
+}
+;
+class
+A
+{
+virtual
+int
+f
+(
+void
+)
+=
+0
+;
+}
+;
+class
+B
+:
+A
+{
+public
+:
+int
+var
+;
+}
+;
+class
+C
+{
+}
+;
+class
+D
+:
+protected
+B
+,
+C
+{
+}
+;
+class
+A
+{
+virtual
+int
+f
+(
+void
+)
+=
+0
+;
+}
+;
+class
+B
+:
+A
+{
+public
+:
+int
+var
+;
+int
+f
+(
+void
+)
+;
+}
+;
+class
+C
+{
+}
+;
+class
+D
+:
+protected
+B
+,
+C
+{
+}
+;
+class
+A
+{
+virtual
+int
+f
+(
+void
+)
+=
+0
+;
+}
+;
+class
+B
+:
+A
+{
+public
+:
+int
+var
+;
+virtual
+int
+f
+(
+void
+)
+;
+}
+;
+class
+C
+:
+A
+{
+}
+;
+class
+D
+:
+public
+B
+,
+C
+{
+public
+:
+}
+;
+class
+A
+{
+virtual
+int
+f
+(
+void
+)
+=
+0
+;
+}
+;
+class
+B
+:
+A
+{
+public
+:
+int
+var
+;
+virtual
+int
+f
+(
+void
+)
+;
+}
+;
+class
+C
+:
+A
+{
+}
+;
+class
+D
+:
+public
+B
+,
+C
+{
+public
+:
+virtual
+int
+f
+(
+void
+)
+;
+}
+;
+class
+A
+{
+public
+:
+int
+var
+;
+}
+;
+class
+B
+{
+public
+:
+float
+var
+;
+}
+;
+class
+C
+:
+public
+A
+,
+public
+B
+{
+using
+B
+:
+:
+var
+;
+}
+;
+class
+A
+{
+virtual
+int
+f
+(
+void
+)
+=
+0
+;
+}
+;
+class
+B
+:
+A
+{
+public
+:
+int
+var
+;
+virtual
+int
+f
+(
+void
+)
+;
+}
+;
+class
+C
+:
+A
+{
+}
+;
+class
+D
+:
+public
+B
+,
+C
+{
+public
+:
+virtual
+int
+f
+(
+void
+)
+;
+}
+;
+class
+E
+:
+D
+{
+virtual
+int
+f
+(
+void
+)
+;
+}
+;
+class
+A
+{
+virtual
+int
+f
+(
+void
+)
+=
+0
+;
+}
+;
+class
+B
+:
+A
+{
+public
+:
+int
+var
+;
+}
+;
+class
+C
+{
+}
+;
+class
+D
+:
+protected
+B
+,
+C
+{
+}
+;
+class
+A
+{
+virtual
+int
+f
+(
+void
+)
+=
+0
+;
+}
+;
+class
+B
+:
+A
+{
+public
+:
+int
+var
+;
+}
+;
+class
+C
+{
+}
+;
+class
+D
+:
+protected
+B
+,
+C
+{
+}
+;
+class
+A
+{
+public
+:
+int
+var
+;
+}
+;
+class
+B
+{
+float
+var
+;
+}
+;
+class
+C
+:
+public
+A
+,
+public
+B
+{
+}
+;
+class
+A
+{
+bool
+a
+;
+public
+:
+float
+aa
+;
+}
+;
+class
+B
+:
+public
+A
+{
+int
+*
+b
+;
+}
+;
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest00d.out[0m 
+[0;31mWrong error code:[0m
+ 1c1
+< 0
+\ No newline at end of file
+---
+> 1
+\ No newline at end of file 
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest006.out[0m 
+[0;31mWrong error code:[0m
+ 1c1
+< 2
+\ No newline at end of file
+---
+> 1
+\ No newline at end of file 
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest01.out[0m 
+[0;31mWrong output:[0m
+ 0a1,11
+> <?xml version="1.0" encoding="UTF-8"?>
+> <model>
+>     <class name="A" kind="concrete">
+>         <class name="B" kind="concrete">
+>             <class name="D" kind="concrete" />
+>         </class>
+>     </class>
+>     <class name="C" kind="concrete">
+>         <class name="D" kind="concrete" />
+>     </class>
+> </model>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest02.out[0m 
+[0;31mWrong output:[0m
+ 1,35c1,11
+< class
+< A
+< {
+< virtual
+< int
+< f
+< (
+< void
+< )
+< =
+< 0
+< ;
+< }
+< ;
+< class
+< B
+< :
+< A
+< {
+< }
+< ;
+< class
+< C
+< {
+< }
+< ;
+< class
+< D
+< :
+< B
+< ,
+< C
+< {
+< }
+< ;
+---
+> <?xml version="1.0" encoding="UTF-8"?>
+> <class name="A" kind="abstract">
+>     <private>
+>         <methods>
+>             <method name="f" type="int" scope="instance">
+>                 <virtual pure="yes" />
+>                 <arguments></arguments>
+>             </method>
+>         </methods>
+>     </private>
+> </class>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest03.out[0m 
+[0;31mWrong output:[0m
+ 0a1,23
+> <?xml version="1.0" encoding="UTF-8"?>
+> <class name="D" kind="abstract">
+>     <inheritance>
+>         <from name="B" privacy="protected" />
+>         <from name="C" privacy="private" />
+>     </inheritance>
+>     <protected>
+>         <attributes>
+>             <attribute name="var" type="int" scope="instance">
+>                 <from name="B" />
+>             </attribute>
+>         </attributes>
+>     </protected>
+>     <private>
+>         <methods>
+>             <method name="f" type="int" scope="instance">
+>                 <from name="A" />
+>                 <virtual pure="yes" />
+>                 <arguments></arguments>
+>             </method>
+>         </methods>
+>     </private>
+> </class>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest04.out[0m 
+[0;31mWrong output:[0m
+ 1,35c1,11
+< class
+< A
+< {
+< virtual
+< int
+< f
+< (
+< void
+< )
+< =
+< 0
+< ;
+< }
+< ;
+< class
+< B
+< :
+< A
+< {
+< }
+< ;
+< class
+< C
+< {
+< }
+< ;
+< class
+< D
+< :
+< B
+< ,
+< C
+< {
+< }
+< ;
+---
+> <?xml version="1.0" encoding="UTF-8"?>
+> <model>
+>     <class name="A" kind="abstract">
+>         <class name="B" kind="abstract">
+>             <class name="D" kind="abstract" />
+>         </class>
+>     </class>
+>     <class name="C" kind="concrete">
+>         <class name="D" kind="abstract" />
+>     </class>
+> </model>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest05.out[0m 
+[0;31mWrong output:[0m
+ 0a1,11
+> <?xml version="1.0" encoding="UTF-8"?>
+> <model>
+>     <class name="A" kind="abstract">
+>         <class name="B" kind="concrete">
+>             <class name="D" kind="concrete" />
+>         </class>
+>     </class>
+>     <class name="C" kind="concrete">
+>         <class name="D" kind="concrete" />
+>     </class>
+> </model>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest06.out[0m 
+[0;31mWrong error code:[0m
+ 1c1
+< 0
+\ No newline at end of file
+---
+> 21
+\ No newline at end of file 
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest07.out[0m 
+[0;31mWrong output:[0m
+ 0a1,20
+> <?xml version="1.0" encoding="UTF-8"?>
+> <class name="D" kind="concrete">
+>     <inheritance>
+>         <from name="B" privacy="public" />
+>         <from name="C" privacy="private" />
+>     </inheritance>
+>     <public>
+>         <attributes>
+>             <attribute name="var" type="int" scope="instance">
+>                 <from name="B" />
+>             </attribute>
+>         </attributes>
+>         <methods>
+>             <method name="f" type="int" scope="instance">
+>                 <virtual pure="no" />
+>                 <arguments></arguments>
+>             </method>
+>         </methods>
+>     </public>
+> </class>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest08.out[0m 
+[0;31mWrong output:[0m
+ 0a1,14
+> <?xml version="1.0" encoding="UTF-8"?>
+> <class name="C" kind="concrete">
+>     <inheritance>
+>         <from name="A" privacy="public" />
+>         <from name="B" privacy="public" />
+>     </inheritance>
+>     <private>
+>         <attributes>
+>             <attribute name="var" type="float" scope="instance">
+>                 <from name="B" />
+>             </attribute>
+>         </attributes>
+>     </private>
+> </class>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest09.out[0m 
+[0;31mWrong output:[0m
+ 0a1,15
+> <?xml version="1.0" encoding="UTF-8"?>
+> <model>
+>     <class name="A" kind="abstract">
+>         <class name="B" kind="concrete">
+>             <class name="D" kind="concrete">
+>                 <class name="E" kind="concrete" />
+>             </class>
+>         </class>
+>         <class name="C" kind="abstract">
+>             <class name="D" kind="concrete">
+>                 <class name="E" kind="concrete" />
+>             </class>
+>         </class>
+>     </class>
+> </model>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest10.out[0m 
+[0;31mWrong output:[0m
+ 0a1,56
+> <?xml version="1.0" encoding="UTF-8"?>
+> <model>
+>     <class name="A" kind="abstract">
+>         <private>
+>             <methods>
+>                 <method name="f" type="int" scope="instance">
+>                     <virtual pure="yes" />
+>                     <arguments></arguments>
+>                 </method>
+>             </methods>
+>         </private> 
+>     </class>
+>     <class name="B" kind="abstract">
+>         <inheritance>
+>             <from name="A" privacy="private" />
+>         </inheritance>
+>         <public>
+>             <attributes>
+>                 <attribute name="var" type="int" scope="instance" />
+>             </attributes>
+>         </public>
+>         <private>
+>             <methods>
+>                 <method name="f" type="int" scope="instance">
+>                     <from name="A" />
+>                     <virtual pure="yes" />
+>                     <arguments></arguments>
+>                 </method>
+>             </methods>
+>         </private>
+>     </class>
+>     <class name="C" kind="concrete">
+>     </class>
+>     <class name="D" kind="abstract">
+>         <inheritance>
+>             <from name="B" privacy="protected" />
+>             <from name="C" privacy="private" />
+>         </inheritance>
+>         <protected>
+>             <attributes>
+>                 <attribute name="var" type="int" scope="instance">
+>                     <from name="B" />
+>                 </attribute>
+>             </attributes>
+>         </protected>
+>         <private>
+>             <methods>
+>                 <method name="f" type="int" scope="instance">
+>                     <from name="A" />
+>                     <virtual pure="yes" />
+>                     <arguments></arguments>
+>                 </method>
+>             </methods>
+>         </private>
+>     </class>
+> </model>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest11.out[0m 
+[0;31mWrong output:[0m
+ 0a1,6
+> <?xml version="1.0" encoding="UTF-8"?>
+> <result>
+>     B
+>     D
+> </result>
+> 
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest12.out[0m 
+[0;31mWrong output:[0m
+ 0a1,21
+> <?xml version="1.0" encoding="UTF-8"?>
+> <class name="C" kind="concrete">
+>     <inheritance>
+>         <from name="A" privacy="public" />
+>         <from name="B" privacy="public" />
+>     </inheritance>
+>     <conflicts>
+>         <member name="var">
+>             <class name="A">
+>                 <public>
+>                     <attribute name="var" type="int" scope="instance" />
+>                 </public>
+>             </class>
+>             <class name="B">
+>                 <private>
+>                     <attribute name="var" type="float" scope="instance" />
+>                 </private>
+>             </class>
+>         </member>
+>     </conflicts>
+> </class>
+[1;32m---------------------------------------------------[0m
+Test: [1;31mtest13.out[0m 
+[0;31mWrong output:[0m
+ 0a1,18
+> <?xml version="1.0" encoding="UTF-8"?>
+> <class name="B" kind="concrete">
+>     <inheritance>
+>         <from name="A" privacy="public" />
+>     </inheritance>
+>     <public>
+>         <attributes>
+>             <attribute name="aa" type="float" scope="instance">
+>                 <from name="A" />
+>             </attribute>
+>         </attributes>
+>     </public>
+>     <private>
+>         <attributes>
+>             <attribute name="b" type="int *" scope="instance" />
+>         </attributes>
+>     </private>
+> </class>
+[1;32m===================================================[0m
+Failed [1;31m15[0m tests from 27 tests.
+If maths is not your strong suit: you passed [1;32m12[0m tests
