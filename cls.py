@@ -4,12 +4,10 @@
 from __future__ import print_function
 import sys
 import re
-from xml.etree.ElementTree import Element, SubElement, Comment, tostring
+from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
-# TODO mozem pozuit minidom?!!
 
 # TODO test ze za funkcoiu {};
-# TODO test na prasaka naformatovane (ziadne medzery, vela medzier....)
 # TODO test na class co sa vola myclass alebo classmine, class B{}class D{}
 # TODO test kde identfikator bude Aa9_
 # TODO test kde bude int x = 10 //asi neporporujeme
@@ -18,6 +16,14 @@ from xml.dom import minidom
 # TODO test na konstuktor a destruktor
 # TODO clenska premenna typu class
 # TODO test na pretazovanie metod (correct aj incorect)
+# TODO invlaid output
+# TODO test na pretty-xml = 7 jedinecne + diff\
+
+# ---------
+# TODO prevod do lxml
+# TODO using
+# TODO XPath
+# TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
 
 
 def error(message, error_code):
@@ -78,12 +84,12 @@ def getType(token, cls):
     """Return type of variable or function."""
     acc_type = ""
     while True:  # simulation do-while
-        acc_type = acc_type + token
+        acc_type = acc_type + token + " "
         token, cls = getToken(cls)
         if (token not in
             ("void", "bool", "char", "int", "float", "double", "void",
              "wchar_t", "signed", "unsigned", "short", "long", "*", "&")):
-            return (acc_type, token+" "+cls)
+            return (acc_type[:-1], token+" "+cls)
 
 
 def parseClasses(cls):
@@ -232,8 +238,6 @@ def editMethod(fromP, m_t, m, to, toWho):
     toWho - name of claas to which we want to add
     @return: (true ,method) or (false,..) if nothing to be done (error is called when needed)
     """
-    # [1] = methods ((Name, arguments_types) return_type, argumenst_names defined/declared,
-    #    virtual, pureVirtual, privacy, static, from)
     if (m[5] == 'private' and not m[4]):  # when private, no need to do anything
         return (False, [])
     if m_t not in to.keys():
@@ -246,10 +250,10 @@ def editMethod(fromP, m_t, m, to, toWho):
         else:
             return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], fromP[0]])
     else:  # already in
-        if (m[7] == toWho):
+        if (to[m_t][7] == toWho or m[4]):
             return (False, [])
         else:
-            error("Conflict", 15)
+            error("Conflict on method "+m_t[0], 21)
 
 
 def editInstance(fromP, i_t, i, to, toWho):
@@ -278,7 +282,7 @@ def editInstance(fromP, i_t, i, to, toWho):
         if (i[5] == toWho):
             return (False, [])
         else:
-            error("Conflict", 15)
+            error("Conflict on instance "+i_t, 21)
 
 
 def makeClassesComplete(cs):
@@ -330,7 +334,6 @@ def getXMLHierarchy(acc, cs, top):
     # pre vsetky tieto triedy zapis vsetky triedy, ktore takuto trieud dedia (1)
 
     # find all clases that inherate from acc
-    # TODO ?? abstract = [c for c in cs[acc][1].keys() if (cs[acc][1][c][4] or cs[acc][1][c][3])]
     abstract = [c for c in cs[acc][1].keys() if cs[acc][1][c][4]]
     if (abstract):
         kind = 'abstract'
@@ -343,6 +346,121 @@ def getXMLHierarchy(acc, cs, top):
     else:
         for cl in chls:
             getXMLHierarchy(cl, cs, child)
+
+
+def makeXMLInstance(name, atts, top, fromWho):
+    """Create XML for one instance.
+
+    name - name of instance
+    atts - attributes of instance
+    top - parent element
+    fromm - name of class in which this instance is located
+    """
+    if (atts[4]):
+        stat = 'static'
+    else:
+        stat = 'instance'
+    i = SubElement(top, 'attribute', {'name': name, 'type': atts[0], 'scope': stat})
+    if (atts[5] != fromWho[0]):
+        SubElement(i, 'from', {'name': atts[5]})
+
+
+def makeXMLMethod(name, atts, top, fromWho):
+    """Create XML for one method.
+
+    name - name of method
+    atts - attributes of method
+    top - parent element
+    fromm - name of class in which this method is located
+    """
+    if (atts[6]):
+        stat = 'static'
+    else:
+        stat = 'instance'
+    m = SubElement(top, 'method', {'name': name[0], 'type': atts[0], 'scope': stat})
+    if (atts[7] != fromWho[0]):
+        SubElement(m, 'from', {'name': atts[7]})
+    if (atts[3] or atts[4]):
+        if atts[4]:
+            pure = 'yes'
+        else:
+            pure = 'no'
+        SubElement(m, 'virtual', {'pure': pure})
+    args = SubElement(m, 'arguments')
+    for arg in range(len(name[1])):
+        SubElement(args, 'argument', {'name': atts[1][arg], 'type': name[1][arg]})
+
+
+def getXMLClassDetails(name, atts, t):
+    """Create a xml detail of one class.
+
+    name - name of className
+    atts - all attributes of class (output from makeClassComplete or parseClasses)
+    t - if not false, put new class on that
+    @return - element of class acc
+    """
+    abstract = [c for c in atts[1].keys() if atts[1][c][4]]
+    if (abstract):
+        kind = 'abstract'
+    else:
+        kind = 'concrete'
+    if (t is not False):
+        top = SubElement(t, 'class', {'name': name, 'kind': kind})
+    else:
+        top = Element('class', {'name': name, 'kind': kind})
+
+    # Inheritance
+    if (atts[0]):
+        inheritance = SubElement(top, 'inheritance')
+        for base in atts[0].keys():
+            SubElement(inheritance, 'from', {'name': base, 'privacy': atts[0][base]})
+
+    # find all:
+    private_m = [c for c in atts[1].keys() if atts[1][c][5] == 'private']
+    public_m = [c for c in atts[1].keys() if atts[1][c][5] == 'public']
+    protected_m = [c for c in atts[1].keys() if atts[1][c][5] == 'protected']
+
+    private_i = [c for c in atts[2].keys() if atts[2][c][3] == 'private']
+    public_i = [c for c in atts[2].keys() if atts[2][c][3] == 'public']
+    protected_i = [c for c in atts[2].keys() if atts[2][c][3] == 'protected']
+
+    if (private_m or private_i):
+        private = SubElement(top, 'private')
+    if (public_m or public_i):
+        public = SubElement(top, 'public')
+    if (protected_m or protected_i):
+        protected = SubElement(top, 'protected')
+
+    if (private_m):
+        priv_m = SubElement(private, 'methods')
+        for m in private_m:
+            makeXMLMethod(m, atts[1][m], priv_m, name)
+
+    if (public_m):
+        publ_m = SubElement(public, 'methods')
+        for m in public_m:
+            makeXMLMethod(m, atts[1][m], publ_m, name)
+
+    if (protected_m):
+        prot_m = SubElement(protected, 'methods')
+        for m in protected_m:
+            makeXMLMethod(m, atts[1][m], prot_m, name)
+
+    if (private_i):
+        priv_i = SubElement(private, 'attributes')
+        for i in private_i:
+            makeXMLInstance(i, atts[2][i], priv_i, name)
+
+    if (public_i):
+        publ_i = SubElement(public, 'attributes')
+        for i in public_i:
+            makeXMLInstance(i, atts[2][i], publ_i, name)
+
+    if (protected_i):
+        prot_i = SubElement(protected, 'attributes')
+        for i in protected_i:
+            makeXMLInstance(i, atts[2][i], prot_i, name)
+    return top
 
 
 def main():
@@ -363,9 +481,30 @@ def main():
     inputContent = inputStream.read()
     parsedClasses = parseClasses(inputContent)
     parsedClasses = makeClassesComplete(parsedClasses)
-    top = Element('model')
-    base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
-    for b in base:
-        getXMLHierarchy(b, parsedClasses, top)
-    print (prettify(top, 4))
+
+    # TODO nie 4 ale z pretty!
+    # TODO XPATH
+    if ('details' not in parsed.keys()):
+        top = Element('model')
+        base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
+        for b in base:
+            getXMLHierarchy(b, parsedClasses, top)
+        final = (prettify(top, 4))
+    else:
+        if (parsed['details']):
+            final = prettify(getXMLClassDetails(parsed['details'],
+                             parsedClasses[parsed['details']], False), 4)
+        else:  # all the classes
+            top = Element('model')
+            for cl in parsedClasses.keys():
+                getXMLClassDetails(cl, parsedClasses[cl], top)
+            final = prettify(top, 4)
+    if ("output" not in keys):
+        outputStream = sys.stdout
+    else:
+        try:
+            outputStream = open(parsed["output"], "w")
+        except:
+            error("Output file is not valid or writable", 3)
+    outputStream.write(final)
 main()
