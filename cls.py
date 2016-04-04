@@ -61,10 +61,12 @@ def parseCommandLine(cmd_line):
         if (matches.group(1) not in ("help", "input", "output", "pretty-xml",
            "details", "search", "conflicts")):
             error("Holy moly, what was that?!", 1)
-        if (matches.group(4) == "" and matches.group(1) != "help" and
-           matches.group(1) != "pretty-xml"):
+        if ((matches.group(4) == "" or matches.group(4) is None) and
+            matches.group(1) != "details" and matches.group(1) != "pretty-xml" and
+           matches.group(1) != 'help'):
             error("I/O, details and search need som additional info", 1)
-        # TODO ak je 4orka None asi okrem pretty tak je to bug?
+        if (matches.group(1) == 'help' and matches.group(4) != ""):
+            error("Help does not take any arguments", 1)
         result[matches.group(1)] = matches.group(4)
     return result
 
@@ -241,7 +243,9 @@ def editMethod(fromP, m_t, m, to, toWho):
     if (m[5] == 'private' and not m[4]):  # when private, no need to do anything
         return (False, [])
     if m_t not in to.keys():
-        if (fromP[1] == 'private'):
+        if (m[4]):  # pure virtual
+            return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]])
+        elif (fromP[1] == 'private'):
             # TODO co ak sa dedi definovana metoda dole?
             # TODO dedia sa staticke?
             return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6], fromP[0]])
@@ -252,7 +256,17 @@ def editMethod(fromP, m_t, m, to, toWho):
     else:  # already in
         if (to[m_t][7] == toWho or m[4]):
             return (False, [])
+        elif (to[m_t][4] and not m[4]):
+            if (fromP[1] == 'private'):
+                # TODO co ak sa dedi definovana metoda dole?
+                # TODO dedia sa staticke?
+                return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6], fromP[0]])
+            elif (fromP[1] == 'protected'):
+                return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6], fromP[0]])
+            else:
+                return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], fromP[0]])
         else:
+            # TODO test ci nie je pure virtual a prichadza normlana def, ktoru chceme!!!!(6 multi)
             error("Conflict on method "+m_t[0], 21)
 
 
