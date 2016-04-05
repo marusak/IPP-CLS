@@ -8,7 +8,6 @@ from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
 # TODO test na konstuktor a destruktor
-# TODO test na pretazovanie metod (correct aj incorect)
 # TODO test kde --detail na nieco co neexistuje -- len hlavicka //FORUM
 # TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
 # TODO DIFF test na pretty-xml = 7 jedinecne + diff

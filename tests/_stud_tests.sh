@@ -238,6 +238,9 @@ echo -n $? > ${LOG_PATH}test024.!!!
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test025.in --output=${LOCAL_OUT_PATH2}test025.out 2> ${LOG_PATH}test025.err
 echo -n $? > ${LOG_PATH}test025.!!!
 
+# test26: overloading: test26.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test026.in --output=${LOCAL_OUT_PATH2}test026.out --details=A 2> ${LOG_PATH}test026.err
+echo -n $? > ${LOG_PATH}test026.!!!
 
 #Print results
 RED='\033[0;31m'
@@ -245,7 +248,7 @@ END='\033[0m'
 GREEN='\033[1;32m'
 BRED='\033[1;31m'
 
-for i in `ls ./ref-out/ | grep -e '.*\.out'`
+for i in `ls ./ref-out/ | grep -e '.*\.out$'`
     do
         ((ALL++))
         java -jar jexamxml/jexamxml.jar ./moj-out/"$i" ./ref-out/"$i" delta.xml jexamxml/cls_options 1>/dev/null
