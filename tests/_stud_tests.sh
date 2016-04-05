@@ -222,9 +222,22 @@ echo -n $? > ${LOG_PATH}test020.!!!
 $INTERPRETER $TASK.$EXTENSION --details=B --input=${LOCAL_IN_PATH3}test021.in --output=${LOCAL_OUT_PATH}test021.out 2> ${LOG_PATH}test021.err
 echo -n $? > ${LOG_PATH}test021.!!!
 
-# test22: Test 11 but result from Xpath is a whole element: test11.out; Expected return code: 0
-$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test11.in --output=${LOCAL_OUT_PATH2}test22.out --details=B --search="/class/." 2> ${LOG_PATH}test22.err
-echo -n $? > ${LOG_PATH}test22.!!!
+# test22: Test 11 but result from Xpath is a whole element: test22.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test11.in --output=${LOCAL_OUT_PATH2}test022.out --details=B --search="/class/." 2> ${LOG_PATH}test022.err
+echo -n $? > ${LOG_PATH}test022.!!!
+
+# test23: test for methods and instances declaration and definitions: test23.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test023.in --output=${LOCAL_OUT_PATH2}test023.out --details=B 2> ${LOG_PATH}test023.err
+echo -n $? > ${LOG_PATH}test023.!!!
+
+# test24: method redefinition: test24.out; Expected return code: 4
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test024.in --output=${LOCAL_OUT_PATH2}test024.out 2> ${LOG_PATH}test024.err
+echo -n $? > ${LOG_PATH}test024.!!!
+
+# test25: instance redefinition: test25.out; Expected return code: 4
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test025.in --output=${LOCAL_OUT_PATH2}test025.out 2> ${LOG_PATH}test025.err
+echo -n $? > ${LOG_PATH}test025.!!!
+
 
 #Print results
 RED='\033[0;31m'

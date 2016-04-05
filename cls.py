@@ -11,15 +11,17 @@ from xml.dom import minidom
 # TODO test na pretazovanie metod (correct aj incorect)
 # TODO test kde --detail na nieco co neexistuje -- len hlavicka //FORUM
 # TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
-# TODO test pri vkladani ins/mt ze este tam nie je, inak bug?
 # TODO DIFF test na pretty-xml = 7 jedinecne + diff
+# TODO viackrat dedenie z jednej v zapise?
+# TODO viackrat using na to iste z jednej/z dvoch tried?
 
 # ---------
 # TODO 6(obcas ano, obcas nie - !!), 11 FORUM, 12 nepodporujem zatial
 # TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
 # TODO konstruktor, destruktor sa nededia!!
-# TODO test pri vkladani ins/mt ze este tam nie je, inak bug?
 # TODO ak pri search neewxistuje, vypise sa len hlavicka//FORUM
+# TODO viackrat dedenie z jednej v zapise?
+# TODO viackrat using na to iste z jednej/z dvoch tried?
 
 
 def error(message, error_code):
@@ -204,13 +206,17 @@ def parseClasses(cls):
             acc_name = token
             token, cls = getToken(cls)
             if (token == ";"):  # instance declaration
-                instances[acc_name] = [acc_type, "declared", virtual,
-                                       privacy, static, className]
+                if (acc_name not in instances.keys()):
+                    instances[acc_name] = [acc_type, "declared", virtual,
+                                           privacy, static, className]
                 token, cls = getToken(cls)
                 continue
             if (token == "="):  # instance definition
                 while (token != ";"):
                     token, cls = getToken(cls)
+                if (acc_name in instances.keys()):
+                    if instances[acc_name][1] == 'defined':
+                        error("Redefinicia instancie", 4)
                 instances[acc_name] = [acc_type, "defined",
                                        virtual, privacy, static, className]
                 token, cls = getToken(cls)
@@ -225,24 +231,30 @@ def parseClasses(cls):
             cls, f_arg_names, f_arg_types = getFArgs(cls)
             token, cls = getToken(cls)
             if (token == ";"):  # method declaration
-                methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
-                                                  False, privacy, static, className]
+                if ((acc_name, f_arg_types) not in methods.keys()):
+                    methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
+                                                      False, privacy, static, className]
                 token, cls = getToken(cls)
                 continue
             if (token == "="):  # pure virtual
                 token, cls = getToken(cls)  # 0 no control
                 token, cls = getToken(cls)  # no control
-                methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
-                                                  True, privacy, static, className]
+                if ((acc_name, f_arg_types) not in methods.keys()):
+                    methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
+                                                      True, privacy, static, className]
                 token, cls = getToken(cls)
                 continue
             if (token != "{"):
                 error("I dont know the input character1 "+token+" "+cls, 4)
             token, cls = getToken(cls)  # }
+            if ((acc_name, f_arg_types) in methods.keys()):
+                if (methods[acc_name, f_arg_types][2] == 'defined'):
+                    error("Redefinicia metody", 4)
             methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "defined", virtual,
                                               False, privacy, static, className]
             token, cls = getToken(cls)  # ;
-            token, cls = getToken(cls)  # }
+            if (token == ";"):
+                token, cls = getToken(cls)  # }
         token, cls = getToken(cls)  # ; or another class
         if (className in classes.keys()):  # uz mame danu triedu vnutri
             if (classes[className] == "declared"):
