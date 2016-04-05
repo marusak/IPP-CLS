@@ -1,0 +1,11 @@
+2) moze vnzikut kruhova zavilsot?
+3) moze byt long, unsiged, signed, short pred typom? //forum
+4) void mojaF(void) {}; (not bug though) //SOLVED moze byt
+5) explicit pri konstruktore//forum
+6) vyuzitie override, final(pre metody aj triedy)//forum
+7) vyuzitie virtualnej dedicnosti //forum
+8) vyzuitie const//forum
+9) forward declaration (doesnt work as base class)//SOLVED uvazovat + musi byt nasledne definicia
+
+--
+1) class D: protected B,C {} // C je implicitne private

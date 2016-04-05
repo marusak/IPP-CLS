@@ -4,7 +4,7 @@
 from __future__ import print_function
 import sys
 import re
-from xml.etree.ElementTree import Element, SubElement, tostring
+from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
 # TODO test ze za funkcoiu {};
@@ -17,12 +17,12 @@ from xml.dom import minidom
 # TODO clenska premenna typu class
 # TODO test na pretazovanie metod (correct aj incorect)
 # TODO invlaid output
-# TODO test na pretty-xml = 7 jedinecne + diff\
+# TODO test na pretty-xml = 7 jedinecne + diff
+# TODO test na search kde vyjde len polozka a kde cele triedy...
+# TODO test na using funkcie kde budu rozne mena arguemntov...
 
 # ---------
-# TODO prevod do lxml
-# TODO using
-# TODO XPath
+# TODO 6(obcas ano, obcas nie - !!), 11 FORUM, 12 nepodporujem zatial
 # TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
 
 
@@ -40,9 +40,11 @@ def help():
 
 def prettify(elem, n):
     """Return a pretty-printed XML string - from pymotw.com."""
-    rough_string = tostring(elem, 'utf-8')
+    if (isinstance(elem, str)):
+        return (" "*n+elem)
+    rough_string = tostring(elem)
     reparsed = minidom.parseString(rough_string)
-    return reparsed.toprettyxml(indent="    ")  # TODO skutocne zarovanie
+    return reparsed.toprettyxml(indent=" "*n)
 
 
 def parseCommandLine(cmd_line):
@@ -94,6 +96,24 @@ def getType(token, cls):
             return (acc_type[:-1], token+" "+cls)
 
 
+def getFArgs(cls):
+    """Parse function arguements."""
+    f_arg_types = ()
+    f_arg_names = ()
+    token = ""
+    while (token != ")"):
+        token, cls = getToken(cls)
+        arg, cls = getType(token, cls)  # type
+        if (arg == "void"):
+            name, cls = getToken(cls)  # )
+            return (cls, f_arg_names, f_arg_types)
+        name, cls = getToken(cls)  # name
+        token, cls = getToken(cls)  # comma or )
+        f_arg_types = f_arg_types + (arg,)
+        f_arg_names = f_arg_names + (name,)
+    return (cls, f_arg_names, f_arg_types)
+
+
 def parseClasses(cls):
     """Berie cely vstup, rozprasuje ho na triedy a vlozi to do struktury.
 
@@ -103,7 +123,8 @@ def parseClasses(cls):
     [1] = methods ((Name, arguments_types) return_type, argumenst_names defined/declared,
         virtual, pureVirtual, privacy, static, from)
     [2] = instances((Name), type, defined/declared, virtual, privacy,static,from)
-    [3] = usings (from, what, privacy)
+    [3] = usings [1] methods (name, arguments_types) from, privacy, argumenst_names
+                 [2] instances (name) from, privacy
     """
     # TODO konstruktor, destruktor
     # TODO test pri vkladani ins/mt ze este tam nie je, inak bug?
@@ -118,7 +139,8 @@ def parseClasses(cls):
         parents = {}
         methods = {}
         instances = {}
-        usings = {}
+        usingM = {}
+        usingI = {}
         while (token != "{" and token != ";"):
             token, cls = getToken(cls)  # comma, no control
             # read the inheritance
@@ -162,9 +184,17 @@ def parseClasses(cls):
                 fromName, cls = getToken(cls)
                 token, cls = getToken(cls)  # ::
                 whatName, cls = getToken(cls)
-                token, cls = getToken(cls)  # " "
+                token, cls = getToken(cls)  # ; or (
+                if (token == ";"):
+                    usingI[whatName] = (fromName, privacy)
+                    token, cls = getToken(cls)
+                    continue
+                elif (token != "("):
+                    error("Dont know type", 4)
+                cls, f_arg_names, f_arg_types = getFArgs(cls)
+                token, cls = getToken(cls)  # ;
                 token, cls = getToken(cls)
-                usings[fromName] = (whatName, privacy)
+                usingM[whatName, f_arg_types] = (fromName, privacy, f_arg_names)
                 continue
             acc_type, cls = getType(token, cls)  # get type
             token, cls = getToken(cls)  # get name
@@ -183,21 +213,13 @@ def parseClasses(cls):
                 token, cls = getToken(cls)
                 continue
             if (token != "("):
-                error("I dont know the input character "+token+" "+cls, 70)
+                error("I dont know the input character "+token+" "+cls, 4)
             # function declaration/definition
             # read arguments
-            token, cls = getToken(cls)
+            # token, cls = getToken(cls)
             f_arg_types = ()
             f_arg_names = ()
-            while (token != ")"):
-                arg, cls = getType(token, cls)  # type
-                if (arg == "void"):
-                    name, cls = getToken(cls)  # )
-                    break
-                name, cls = getToken(cls)  # name
-                token, cls = getToken(cls)  # comma or )
-                f_arg_types = f_arg_types + (arg,)
-                f_arg_names = f_arg_names + (name,)
+            cls, f_arg_names, f_arg_types = getFArgs(cls)
             token, cls = getToken(cls)
             if (token == ";"):  # method declaration
                 methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
@@ -212,7 +234,7 @@ def parseClasses(cls):
                 token, cls = getToken(cls)
                 continue
             if (token != "{"):
-                error("I dont know the input character1 "+token+" "+cls, 69)
+                error("I dont know the input character1 "+token+" "+cls, 4)
             token, cls = getToken(cls)  # }
             methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "defined", virtual,
                                               False, privacy, static, className]
@@ -221,16 +243,16 @@ def parseClasses(cls):
         token, cls = getToken(cls)  # ; or another class
         if (className in classes.keys()):  # uz mame danu triedu vnutri
             if (classes[className] == "declared"):
-                classes[className] = [parents, methods, instances, usings]
+                classes[className] = [parents, methods, instances, [{}, usingM, usingI]]
             else:
                 error("redefinicia triedy", 4)
         else:
-            classes[className] = [parents, methods, instances, usings]
+            classes[className] = [parents, methods, instances, [{}, usingM, usingI]]
 
     return classes
 
 
-def editMethod(fromP, m_t, m, to, toWho):
+def editMethod(fromP, m_t, m, to, toWho, conflicts):
     """edit function in relation to the context.
 
     fromP - base class + privacy
@@ -242,7 +264,7 @@ def editMethod(fromP, m_t, m, to, toWho):
     """
     if (m[5] == 'private' and not m[4]):  # when private, no need to do anything
         return (False, [])
-    if m_t not in to.keys():
+    if m_t not in to.keys() and m_t not in conflicts.keys():
         if (m[4]):  # pure virtual
             return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]])
         elif (fromP[1] == 'private'):
@@ -253,24 +275,21 @@ def editMethod(fromP, m_t, m, to, toWho):
             return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6], fromP[0]])
         else:
             return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], fromP[0]])
-    else:  # already in
+    elif m_t in conflicts.keys():
+        if (m[7] == conflicts[m_t][0]):
+            return (True, [m[0], m[1], m[2], m[3], m[4],
+                    conflicts[m_t][1], m[6], conflicts[m_t][0]])
+        else:
+            return (False, [])
+    else:  # already in and not specified by conflict
         if (to[m_t][7] == toWho or m[4]):
             return (False, [])
-        elif (to[m_t][4] and not m[4]):
-            if (fromP[1] == 'private'):
-                # TODO co ak sa dedi definovana metoda dole?
-                # TODO dedia sa staticke?
-                return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6], fromP[0]])
-            elif (fromP[1] == 'protected'):
-                return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6], fromP[0]])
-            else:
-                return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], fromP[0]])
         else:
             # TODO test ci nie je pure virtual a prichadza normlana def, ktoru chceme!!!!(6 multi)
             error("Conflict on method "+m_t[0], 21)
 
 
-def editInstance(fromP, i_t, i, to, toWho):
+def editInstance(fromP, i_t, i, to, toWho, conflicts):
     """edit instance in relation to the context.
 
     fromP - base class + privacy
@@ -283,7 +302,7 @@ def editInstance(fromP, i_t, i, to, toWho):
     # [2] = instances((Name), type, defined/declared, virtual, privacy,static,from)
     if (i[3] == 'private'):  # when private, no need to do anything
         return (False, [])
-    if i_t not in to.keys():
+    if i_t not in to.keys() and i_t not in conflicts.keys():
         if (fromP[1] == 'private'):
             # TODO co ak sa dedi definovana metoda dole?
             # TODO dedia sa staticke?
@@ -292,6 +311,11 @@ def editInstance(fromP, i_t, i, to, toWho):
             return (True, [i[0], i[1], i[2], 'protected', i[4], fromP[0]])
         else:
             return (True, [i[0], i[1], i[2], i[3], i[4], fromP[0]])
+    elif i_t in conflicts.keys():
+        if (i[5] == conflicts[i_t][0]):
+            return (True, [i[0], i[1], i[2], conflicts[i_t][1], i[4], conflicts[i_t][0]])
+        else:
+            return (False, [])
     else:  # already in
         if (i[5] == toWho):
             return (False, [])
@@ -319,13 +343,13 @@ def makeClassesComplete(cs):
                     # spracuj metody
                     for mt in cs[par][1].keys():
                         toDo, newM = editMethod([par, cs[item][0][par]], mt, cs[par][1][mt],
-                                                cs[item][1], item)
+                                                cs[item][1], item, cs[item][3][1])
                         if (toDo):
                             cs[item][1][mt] = newM
                     # spracuj instancie
                     for ins in cs[par][2].keys():
                         toDo, newI = editInstance([par, cs[item][0][par]], ins, cs[par][2][ins],
-                                                  cs[item][2], item)
+                                                  cs[item][2], item, cs[item][3][2])
                         if (toDo):
                             cs[item][2][ins] = newI
                 # add to solved classes (closed)
@@ -340,24 +364,13 @@ def getXMLHierarchy(acc, cs, top):
 
     acc - class, that is now being examined
     cs - all classes
-    top - the top model
+    top - the parent element
     """
-    # len triedy, ktore od nikoho nededia
-    # pre kazdu takuto triedu:(1)
-    # zapis vsetky tireyd, ktore priamo z tejto triedy dedia
-    # pre vsetky tieto triedy zapis vsetky triedy, ktore takuto trieud dedia (1)
-
-    # find all clases that inherate from acc
     abstract = [c for c in cs[acc][1].keys() if cs[acc][1][c][4]]
-    if (abstract):
-        kind = 'abstract'
-    else:
-        kind = 'concrete'
+    kind = 'abstract' if (abstract) else 'concrete'
     child = SubElement(top, 'class', {'kind': kind, 'name': acc})
     chls = [c for c in cs.keys() if acc in cs[c][0].keys()]
-    if (chls == []):
-        return
-    else:
+    if (chls):
         for cl in chls:
             getXMLHierarchy(cl, cs, child)
 
@@ -370,10 +383,7 @@ def makeXMLInstance(name, atts, top, fromWho):
     top - parent element
     fromm - name of class in which this instance is located
     """
-    if (atts[4]):
-        stat = 'static'
-    else:
-        stat = 'instance'
+    stat = 'static' if (atts[4]) else 'instance'
     i = SubElement(top, 'attribute', {'name': name, 'type': atts[0], 'scope': stat})
     if (atts[5] != fromWho[0]):
         SubElement(i, 'from', {'name': atts[5]})
@@ -496,6 +506,10 @@ def main():
     parsedClasses = parseClasses(inputContent)
     parsedClasses = makeClassesComplete(parsedClasses)
 
+    if ('pretty-xml' in parsed.keys()):
+        pretty = 4 if not parsed['pretty-xml'] else int(parsed['pretty-xml'])
+    else:
+        pretty = 4
     # TODO nie 4 ale z pretty!
     # TODO XPATH
     if ('details' not in parsed.keys()):
@@ -503,16 +517,25 @@ def main():
         base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
         for b in base:
             getXMLHierarchy(b, parsedClasses, top)
-        final = (prettify(top, 4))
     else:
         if (parsed['details']):
-            final = prettify(getXMLClassDetails(parsed['details'],
-                             parsedClasses[parsed['details']], False), 4)
+            top = getXMLClassDetails(parsed['details'], parsedClasses[parsed['details']], False)
         else:  # all the classes
             top = Element('model')
             for cl in parsedClasses.keys():
                 getXMLClassDetails(cl, parsedClasses[cl], top)
-            final = prettify(top, 4)
+        if ('search' in parsed.keys()):
+            r = top.xpath(parsed['search'])
+            top = Element('result')
+            toWrite = ""
+            if r:
+                for item in r:
+                    if (isinstance(item, str)):
+                        toWrite += "\n" + pretty * " " + item
+                    else:
+                        top.append(item)
+                top.text = toWrite+"\n"
+    final = prettify(top, pretty)
     if ("output" not in keys):
         outputStream = sys.stdout
     else:

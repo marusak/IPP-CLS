@@ -66,7 +66,7 @@ LOCAL_IN_PATH2="" #Alternative 1 (primitive relative path)
 LOCAL_IN_PATH3=`pwd`"/" #Alternative 2 (absolute path)
 LOCAL_OUT_PATH="./moj-out/" # (simple relative path)
 LOCAL_OUT_PATH2="./moj-out/" #Alternative 1 (primitive relative path)
-LOCAL_OUT_PATH3=`pwd`"/" #Alternative 2 (absolute path)
+LOCAL_OUT_PATH3=`pwd`"/moj-out/" #Alternative 2 (absolute path)
 # cesta pro ukládání chybového výstupu studentského skriptu
 LOG_PATH="./moj-out/"
 COUNT=0
@@ -126,7 +126,7 @@ echo -n $? > ${LOG_PATH}test00b.!!!
 $INTERPRETER $TASK.$EXTENSION  --input=/etc/shadow 2> ${LOG_PATH}test00c.err
 echo -n $? > ${LOG_PATH}test00c.!!!
 
-#helo with option? error 1
+#help with option? error 1
 $INTERPRETER $TASK.$EXTENSION  --help=me 2> ${LOG_PATH}test00d.err
 echo -n $? > ${LOG_PATH}test00d.!!!
 
@@ -186,6 +186,9 @@ echo -n $? > ${LOG_PATH}test13.!!!
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH2}test014.in --output=${LOCAL_OUT_PATH}test014.out 2> ${LOG_PATH}test014.err
 echo -n $? > ${LOG_PATH}test014.!!!
 
+# test014: Test similiar to test08, but conflict in fuctions with using. Expected output: test015.out Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH2}test015.in --output=${LOCAL_OUT_PATH}test015.out --details=D 2> ${LOG_PATH}test015.err
+echo -n $? > ${LOG_PATH}test015.!!!
 
 
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<class name="D" privacy="concrete">
+<class kind="concrete" name="D">
     <inheritance>
         <from name="B" privacy="public"/>
         <from name="C" privacy="private"/>
