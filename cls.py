@@ -7,11 +7,7 @@ import re
 from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
-# TODO test ze za funkcoiu {};
-# TODO test na class co sa vola myclass alebo classmine, class B{}class D{}
-# TODO test kde identfikator bude Aa9_
 # TODO test kde bude int x = 10 //asi neporporujeme
-# TODO test kde bude deklaracie class a kusok neskor aj def tej classvv
 # TODO test na static
 # TODO test na konstuktor a destruktor
 # TODO clenska premenna typu class
@@ -20,6 +16,8 @@ from xml.dom import minidom
 # TODO test na pretty-xml = 7 jedinecne + diff
 # TODO test na search kde vyjde len polozka a kde cele triedy...
 # TODO test na using funkcie kde budu rozne mena arguemntov...
+# TODO ak dedi z triedy, ktora neexistuje!
+# TODO test kde --detail na nieco co neexistuje
 
 # ---------
 # TODO 6(obcas ano, obcas nie - !!), 11 FORUM, 12 nepodporujem zatial
@@ -144,11 +142,14 @@ def parseClasses(cls):
         while (token != "{" and token != ";"):
             token, cls = getToken(cls)  # comma, no control
             # read the inheritance
-            # TODO control if all classes already exists
             if (token in ("private", "protected", "public")):
                 papaName, cls = getToken(cls)
+                if papaName not in classes.keys():
+                    error("Neda sa dedit z triedy, ktora neexistuje", 4)
                 parents[papaName] = token
             else:
+                if token not in classes.keys():
+                    error("Neda sa dedit z triedy, ktora neexistuje", 4)
                 parents[token] = "private"
             token, cls = getToken(cls)
 

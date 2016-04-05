@@ -190,7 +190,17 @@ echo -n $? > ${LOG_PATH}test014.!!!
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH2}test015.in --output=${LOCAL_OUT_PATH}test015.out --details=D 2> ${LOG_PATH}test015.err
 echo -n $? > ${LOG_PATH}test015.!!!
 
+# test016: Test 09, but with function definition; Expected output: test09.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH2}test016.in --output=${LOCAL_OUT_PATH}test016.out 2> ${LOG_PATH}test016.err
+echo -n $? > ${LOG_PATH}test016.!!!
 
+# test016: Test 03, but with funky names of variables, methods, and classes; Expected output: test09.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH2}test017.in --output=${LOCAL_OUT_PATH}test017.out --details=____ 2> ${LOG_PATH}test017.err
+echo -n $? > ${LOG_PATH}test017.!!!
+
+# test018: test 10, but with forward class declaration; Expected output: test10.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --details --input=${LOCAL_IN_PATH3}test018.in --output=${LOCAL_OUT_PATH}test018.out 2> ${LOG_PATH}test018.err
+echo -n $? > ${LOG_PATH}test018.!!!
 
 #Print results
 RED='\033[0;31m'
@@ -238,6 +248,7 @@ for i in `ls ./ref-out/ | grep -e '.*\.out'`
             fi
         fi
     done
+    rm moj-out/*
     PASSED=$((ALL-COUNT))
     printf "${GREEN}===================================================${END}\n"
     printf "Failed ${BRED}$COUNT${END} "`[[ $COUNT -eq 1 ]] && echo -n "test" || echo -n "tests"`;
