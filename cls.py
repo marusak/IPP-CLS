@@ -8,7 +8,7 @@ from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
 # TODO test kde bude int x = 10 //asi neporporujeme
-# TODO test na static
+# TODO ze bude forward dekladarcia a bude pouzita ako base class - error 4
 # TODO test na konstuktor a destruktor
 # TODO clenska premenna typu class
 # TODO test na pretazovanie metod (correct aj incorect)
@@ -22,6 +22,8 @@ from xml.dom import minidom
 # ---------
 # TODO 6(obcas ano, obcas nie - !!), 11 FORUM, 12 nepodporujem zatial
 # TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
+# TODO konstruktor, destruktor
+# TODO test pri vkladani ins/mt ze este tam nie je, inak bug?
 
 
 def error(message, error_code):
@@ -101,6 +103,8 @@ def getFArgs(cls):
     token = ""
     while (token != ")"):
         token, cls = getToken(cls)
+        if (token == ")"):
+            return (cls, f_arg_names, f_arg_types)
         arg, cls = getType(token, cls)  # type
         if (arg == "void"):
             name, cls = getToken(cls)  # )
@@ -124,8 +128,6 @@ def parseClasses(cls):
     [3] = usings [1] methods (name, arguments_types) from, privacy, argumenst_names
                  [2] instances (name) from, privacy
     """
-    # TODO konstruktor, destruktor
-    # TODO test pri vkladani ins/mt ze este tam nie je, inak bug?
     classes = {}
     while (cls != ""):
         token, cls = getToken(cls)
@@ -269,8 +271,6 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
         if (m[4]):  # pure virtual
             return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]])
         elif (fromP[1] == 'private'):
-            # TODO co ak sa dedi definovana metoda dole?
-            # TODO dedia sa staticke?
             return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6], fromP[0]])
         elif (fromP[1] == 'protected'):
             return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6], fromP[0]])
@@ -286,7 +286,6 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
         if (to[m_t][7] == toWho or m[4]):
             return (False, [])
         else:
-            # TODO test ci nie je pure virtual a prichadza normlana def, ktoru chceme!!!!(6 multi)
             error("Conflict on method "+m_t[0], 21)
 
 
@@ -305,8 +304,6 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
         return (False, [])
     if i_t not in to.keys() and i_t not in conflicts.keys():
         if (fromP[1] == 'private'):
-            # TODO co ak sa dedi definovana metoda dole?
-            # TODO dedia sa staticke?
             return (True, [i[0], i[1], i[2], 'private', i[4], fromP[0]])
         elif (fromP[1] == 'protected'):
             return (True, [i[0], i[1], i[2], 'protected', i[4], fromP[0]])
@@ -511,8 +508,6 @@ def main():
         pretty = 4 if not parsed['pretty-xml'] else int(parsed['pretty-xml'])
     else:
         pretty = 4
-    # TODO nie 4 ale z pretty!
-    # TODO XPATH
     if ('details' not in parsed.keys()):
         top = Element('model')
         base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
