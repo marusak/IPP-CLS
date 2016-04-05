@@ -130,6 +130,14 @@ echo -n $? > ${LOG_PATH}test00c.!!!
 $INTERPRETER $TASK.$EXTENSION  --help=me 2> ${LOG_PATH}test00d.err
 echo -n $? > ${LOG_PATH}test00d.!!!
 
+#invalit output - no permission
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test01.in --output=/etc/shadow 2> ${LOG_PATH}test00e.err
+echo -n $? > ${LOG_PATH}test00e.!!!
+
+# technically test01 but with output to stdout; Expected output: test00f.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test01.in >${LOCAL_OUT_PATH}test00f.out 2> ${LOG_PATH}test00f.err
+echo -n $? > ${LOG_PATH}test00f.!!!
+
 # test01: zakladni strom dedicnosti; Expected output: test01.out; Expected return code: 0
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test01.in --output=${LOCAL_OUT_PATH}test01.out 2> ${LOG_PATH}test01.err
 echo -n $? > ${LOG_PATH}test01.!!!
@@ -186,11 +194,11 @@ echo -n $? > ${LOG_PATH}test13.!!!
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH2}test014.in --output=${LOCAL_OUT_PATH}test014.out 2> ${LOG_PATH}test014.err
 echo -n $? > ${LOG_PATH}test014.!!!
 
-# test014: Test similiar to test08, but conflict in fuctions with using. Expected output: test015.out Expected return code: 0
+# test014: Test similiar to test08, but conflict in fuctions solved with using. Expected output: test015.out Expected return code: 0
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH2}test015.in --output=${LOCAL_OUT_PATH}test015.out --details=D 2> ${LOG_PATH}test015.err
 echo -n $? > ${LOG_PATH}test015.!!!
 
-# test016: Test 09, but with function definition; Expected output: test09.out; Expected return code: 0
+# test016: Test 09, but with function and instances definition; Expected output: test09.out; Expected return code: 0
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH2}test016.in --output=${LOCAL_OUT_PATH}test016.out 2> ${LOG_PATH}test016.err
 echo -n $? > ${LOG_PATH}test016.!!!
 
@@ -206,7 +214,17 @@ echo -n $? > ${LOG_PATH}test018.!!!
 $INTERPRETER $TASK.$EXTENSION --details --input=${LOCAL_IN_PATH3}test019.in --output=${LOCAL_OUT_PATH}test019.out 2> ${LOG_PATH}test019.err
 echo -n $? > ${LOG_PATH}test019.!!!
 
+# test020: Instance and method has type of class; Expected output: test020.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --details=B --input=${LOCAL_IN_PATH3}test020.in --output=${LOCAL_OUT_PATH}test020.out 2> ${LOG_PATH}test020.err
+echo -n $? > ${LOG_PATH}test020.!!!
 
+# test021: Declared class cannot be used as base class; Expected output: -; Expected return code: 4
+$INTERPRETER $TASK.$EXTENSION --details=B --input=${LOCAL_IN_PATH3}test021.in --output=${LOCAL_OUT_PATH}test021.out 2> ${LOG_PATH}test021.err
+echo -n $? > ${LOG_PATH}test021.!!!
+
+# test22: Test 11 but result from Xpath is a whole element: test11.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test11.in --output=${LOCAL_OUT_PATH2}test22.out --details=B --search="/class/." 2> ${LOG_PATH}test22.err
+echo -n $? > ${LOG_PATH}test22.!!!
 
 #Print results
 RED='\033[0;31m'

@@ -7,23 +7,19 @@ import re
 from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
-# TODO test kde bude int x = 10 //asi neporporujeme
-# TODO ze bude forward dekladarcia a bude pouzita ako base class - error 4
 # TODO test na konstuktor a destruktor
-# TODO clenska premenna typu class
 # TODO test na pretazovanie metod (correct aj incorect)
-# TODO invlaid output
-# TODO test na pretty-xml = 7 jedinecne + diff
-# TODO test na search kde vyjde len polozka a kde cele triedy...
-# TODO test na using funkcie kde budu rozne mena arguemntov...
-# TODO ak dedi z triedy, ktora neexistuje!
-# TODO test kde --detail na nieco co neexistuje
+# TODO test kde --detail na nieco co neexistuje -- len hlavicka //FORUM
+# TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
+# TODO test pri vkladani ins/mt ze este tam nie je, inak bug?
+# TODO DIFF test na pretty-xml = 7 jedinecne + diff
 
 # ---------
 # TODO 6(obcas ano, obcas nie - !!), 11 FORUM, 12 nepodporujem zatial
 # TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
-# TODO konstruktor, destruktor
+# TODO konstruktor, destruktor sa nededia!!
 # TODO test pri vkladani ins/mt ze este tam nie je, inak bug?
+# TODO ak pri search neewxistuje, vypise sa len hlavicka//FORUM
 
 
 def error(message, error_code):
@@ -148,10 +144,14 @@ def parseClasses(cls):
                 papaName, cls = getToken(cls)
                 if papaName not in classes.keys():
                     error("Neda sa dedit z triedy, ktora neexistuje", 4)
+                if classes[papaName] == 'declared':
+                    error("Neda sa dedit z triedy, ktora je len deklarovana", 4)
                 parents[papaName] = token
             else:
                 if token not in classes.keys():
                     error("Neda sa dedit z triedy, ktora neexistuje", 4)
+                if classes[token] == 'declared':
+                    error("Neda sa dedit z triedy, ktora je len deklarovana", 4)
                 parents[token] = "private"
             token, cls = getToken(cls)
 
@@ -209,7 +209,7 @@ def parseClasses(cls):
                 token, cls = getToken(cls)
                 continue
             if (token == "="):  # instance definition
-                while (token != ""):
+                while (token != ";"):
                     token, cls = getToken(cls)
                 instances[acc_name] = [acc_type, "defined",
                                        virtual, privacy, static, className]
@@ -508,6 +508,7 @@ def main():
         pretty = 4 if not parsed['pretty-xml'] else int(parsed['pretty-xml'])
     else:
         pretty = 4
+
     if ('details' not in parsed.keys()):
         top = Element('model')
         base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
@@ -515,6 +516,9 @@ def main():
             getXMLHierarchy(b, parsedClasses, top)
     else:
         if (parsed['details']):
+            if (parsed['details'] not in parsedClasses.keys()):
+                # TODO len hlavicka
+                pass
             top = getXMLClassDetails(parsed['details'], parsedClasses[parsed['details']], False)
         else:  # all the classes
             top = Element('model')

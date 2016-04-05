@@ -1,7 +1,7 @@
 class A {virtual int f(void) =0;};
 class B : A {
 public:
-    int var;
+    int var = 10;
     virtual int f(void);
 };
 class C : A {};
