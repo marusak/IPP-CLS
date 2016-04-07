@@ -398,7 +398,7 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
         else:
             return (False, [])
     else:  # already in
-        if (i[5] == toWho):
+        if (to[i_t][5] == toWho):
             return (False, [])
         else:
             error("Conflict on instance "+i_t, 21)
