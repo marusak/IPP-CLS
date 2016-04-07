@@ -114,8 +114,8 @@ def parseClasses(cls):
     key = name
     [0] = list of parents (ClassName, type)
     [1] = methods ((Name, arguments_types) return_type, argumenst_names defined/declared,
-        virtual, pureVirtual, privacy, static, from)
-    [2] = instances((Name), type, defined/declared, virtual, privacy,static,from)
+        virtual, pureVirtual, privacy, static, from, printable)
+    [2] = instances((Name), type, defined/declared, virtual, privacy,static,from, printable)
     [3] = usings [1] methods (name, arguments_types) from, privacy, argumenst_names
                  [2] instances (name) from, privacy
     """
@@ -210,7 +210,7 @@ def parseClasses(cls):
                     if ((name, ()) in methods.keys()):
                         error("Overloading of destructor", 4)
                     methods[name, ()] = ["void", (), "declared", virtual,
-                                         False, privacy, static, className]
+                                         False, privacy, static, className, True]
                     token, cls = getToken(cls)
                     continue
                 token, cls = getToken(cls)  # }
@@ -224,7 +224,7 @@ def parseClasses(cls):
                 if ((name, ()) in methods.keys()):
                     error("Redefinicia destuktoru", 4)
                 methods[name, ()] = ["void", (), "defined", virtual,
-                                     False, privacy, static, className]
+                                     False, privacy, static, className, True]
                 continue
             if (token == className):  # Contructor
                 name = token
@@ -239,7 +239,7 @@ def parseClasses(cls):
                     methods[name, f_arg_types] = [name, f_arg_names,
                                                   "declared", virtual,
                                                   False, privacy, static,
-                                                  className]
+                                                  className, True]
                     token, cls = getToken(cls)
                     continue
                 token, cls = getToken(cls)  # {
@@ -252,7 +252,7 @@ def parseClasses(cls):
                     error("Redefinicia constructoru", 4)
                 methods[name, f_arg_types] = [name, f_arg_names, "defined",
                                               virtual, False, privacy,
-                                              static, className]
+                                              static, className, True]
                 continue
             acc_type, cls = getType(token, cls)  # get type
             token, cls = getToken(cls)  # get name
@@ -262,7 +262,7 @@ def parseClasses(cls):
                 if (acc_name in instances.keys()):
                     error("Overloading of instance", 4)
                 instances[acc_name] = [acc_type, "declared", virtual,
-                                       privacy, static, className]
+                                       privacy, static, className, True]
                 token, cls = getToken(cls)
                 continue
             if (token == "="):  # instance definition
@@ -271,7 +271,7 @@ def parseClasses(cls):
                 if (acc_name in instances.keys()):
                     error("Redefinicia instancie", 4)
                 instances[acc_name] = [acc_type, "defined",
-                                       virtual, privacy, static, className]
+                                       virtual, privacy, static, className, True]
                 token, cls = getToken(cls)
                 continue
             if (token != "("):
@@ -287,7 +287,7 @@ def parseClasses(cls):
                 if ((acc_name, f_arg_types) in methods.keys()):
                     error("Redeklaracia metody", 4)
                 methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
-                                                  False, privacy, static, className]
+                                                  False, privacy, static, className, True]
                 token, cls = getToken(cls)
                 continue
             if (token == "="):  # pure virtual
@@ -296,7 +296,7 @@ def parseClasses(cls):
                 if ((acc_name, f_arg_types) in methods.keys()):
                     error("Redeklaracia metody", 4)
                 methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
-                                                  True, privacy, static, className]
+                                                  True, privacy, static, className, True]
                 token, cls = getToken(cls)
                 continue
             if (token != "{"):
@@ -305,7 +305,7 @@ def parseClasses(cls):
             if ((acc_name, f_arg_types) in methods.keys()):
                 error("Redefinicia metody", 4)
             methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "defined", virtual,
-                                              False, privacy, static, className]
+                                              False, privacy, static, className, True]
             token, cls = getToken(cls)  # ;
             if (token == ";"):
                 token, cls = getToken(cls)  # }
@@ -331,28 +331,42 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
     toWho - name of claas to which we want to add
     @return: (true ,method) or (false,..) if nothing to be done (error is called when needed)
     """
+    printable = m[8]
     if (m[5] == 'private' and not m[4]):  # when private, no need to do anything
-        return (False, [])
+        printable = False
     if (m_t[0] == fromP[0] or m_t[0] == '~'+fromP[0]):
         return (False, [])
     if m_t not in to.keys() and m_t not in conflicts.keys():
         if (m[4]):  # pure virtual
-            return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]])
+            return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], printable])
         elif (fromP[1] == 'private'):
-            return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6], fromP[0]])
+            return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6], fromP[0], printable])
         elif (fromP[1] == 'protected'):
-            return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6], fromP[0]])
+            return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6], fromP[0], printable])
         else:
-            return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], fromP[0]])
+            return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], fromP[0], printable])
     elif m_t in conflicts.keys():
         if (m[7] == conflicts[m_t][0]):
             return (True, [m[0], m[1], m[2], m[3], m[4],
-                    conflicts[m_t][1], m[6], conflicts[m_t][0]])
+                    conflicts[m_t][1], m[6], conflicts[m_t][0], printable])
         else:
             return (False, [])
     else:  # already in and not specified by conflict
-        if (to[m_t][7] == toWho or m[4]):
+        if (to[m_t][7] == toWho):
             return (False, [])
+        elif (m[2] != 'declared' or to[m_t][2] != 'declared'):
+            if (m[2] == 'defined'):
+                if (m[4]):  # pure virtual
+                    return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], printable])
+                elif (fromP[1] == 'private'):
+                    return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6],
+                            fromP[0], printable])
+                elif (fromP[1] == 'protected'):
+                    return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6],
+                            fromP[0], printable])
+                else:
+                    return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6],
+                            fromP[0], printable])
         else:
             error("Conflict on method "+m_t[0], 21)
 
@@ -368,18 +382,19 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
     @return: (true ,method) or (false,..) if nothing to be done (error is called when needed)
     """
     # [2] = instances((Name), type, defined/declared, virtual, privacy,static,from)
+    printable = i[6]
     if (i[3] == 'private'):  # when private, no need to do anything
-        return (False, [])
+        printable = False
     if i_t not in to.keys() and i_t not in conflicts.keys():
         if (fromP[1] == 'private'):
-            return (True, [i[0], i[1], i[2], 'private', i[4], fromP[0]])
+            return (True, [i[0], i[1], i[2], 'private', i[4], fromP[0], printable])
         elif (fromP[1] == 'protected'):
-            return (True, [i[0], i[1], i[2], 'protected', i[4], fromP[0]])
+            return (True, [i[0], i[1], i[2], 'protected', i[4], fromP[0], printable])
         else:
-            return (True, [i[0], i[1], i[2], i[3], i[4], fromP[0]])
+            return (True, [i[0], i[1], i[2], i[3], i[4], fromP[0], printable])
     elif i_t in conflicts.keys():
         if (i[5] == conflicts[i_t][0]):
-            return (True, [i[0], i[1], i[2], conflicts[i_t][1], i[4], conflicts[i_t][0]])
+            return (True, [i[0], i[1], i[2], conflicts[i_t][1], i[4], conflicts[i_t][0], printable])
         else:
             return (False, [])
     else:  # already in
@@ -447,8 +462,10 @@ def makeXMLInstance(name, atts, top, fromWho):
     name - name of instance
     atts - attributes of instance
     top - parent element
-    fromm - name of class in which this instance is located
+    fromWho - name of class in which this instance is located
     """
+    if (not atts[6]):
+        return
     stat = 'static' if (atts[4]) else 'instance'
     i = SubElement(top, 'attribute', {'name': name, 'type': atts[0], 'scope': stat})
     if (atts[5] != fromWho[0]):
@@ -458,11 +475,15 @@ def makeXMLInstance(name, atts, top, fromWho):
 def makeXMLMethod(name, atts, top, fromWho):
     """Create XML for one method.
 
+    [1] = methods ((Name, arguments_types) return_type, argumenst_names defined/declared,
+        virtual, pureVirtual, privacy, static, from)
     name - name of method
     atts - attributes of method
     top - parent element
     fromm - name of class in which this method is located
     """
+    if (not atts[8]):
+        return
     if (atts[6]):
         stat = 'static'
     else:
