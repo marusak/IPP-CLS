@@ -71,7 +71,7 @@ LOCAL_OUT_PATH3=`pwd`"/moj-out/" #Alternative 2 (absolute path)
 LOG_PATH="./moj-out/"
 COUNT=0
 ALL=0
-
+mkdir moj-out
 #10 test for invalid arguments;  Expected return code for all: 1
 
 #test000
@@ -226,7 +226,7 @@ echo -n $? > ${LOG_PATH}test021.!!!
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test11.in --output=${LOCAL_OUT_PATH2}test022.out --details=B --search="/class/." 2> ${LOG_PATH}test022.err
 echo -n $? > ${LOG_PATH}test022.!!!
 
-# test23: test for methods and instances declaration and definitions: test23.out; Expected return code: 0
+# test23: test for methods and instances declaration and definitions - INVALID: test23.out; Expected return code: 4
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test023.in --output=${LOCAL_OUT_PATH2}test023.out --details=B 2> ${LOG_PATH}test023.err
 echo -n $? > ${LOG_PATH}test023.!!!
 
@@ -242,6 +242,26 @@ echo -n $? > ${LOG_PATH}test025.!!!
 $INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test026.in --output=${LOCAL_OUT_PATH2}test026.out --details=A 2> ${LOG_PATH}test026.err
 echo -n $? > ${LOG_PATH}test026.!!!
 
+# test27: Contructor and Destructor: test27.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test027.in --output=${LOCAL_OUT_PATH2}test027.out --details 2> ${LOG_PATH}test027.err
+echo -n $? > ${LOG_PATH}test027.!!!
+
+# test28: Destructor overload: test28.out; Expected return code: 4
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test028.in --output=${LOCAL_OUT_PATH2}test028.out --details 2> ${LOG_PATH}test028.err
+echo -n $? > ${LOG_PATH}test028.!!!
+
+# test29: duplicate base class: test29.out; Expected return code: 4
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test029.in --output=${LOCAL_OUT_PATH2}test029.out --details 2> ${LOG_PATH}test029.err
+echo -n $? > ${LOG_PATH}test029.!!!
+
+# test30: conflict: test30.out; Expected return code: 21
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test030.in --output=${LOCAL_OUT_PATH2}test030.out --details 2> ${LOG_PATH}test030.err
+echo -n $? > ${LOG_PATH}test030.!!!
+
+# test31D: prettyXML test: test31D.out; Expected return code: 0
+$INTERPRETER $TASK.$EXTENSION --input=${LOCAL_IN_PATH}test030.in --output=${LOCAL_OUT_PATH2}test031D.outD --details=A --pretty-xml=7 2> ${LOG_PATH}test031D.err
+echo -n $? > ${LOG_PATH}test031D.!!!
+
 #Print results
 RED='\033[0;31m'
 END='\033[0m'
@@ -251,7 +271,7 @@ BRED='\033[1;31m'
 for i in `ls ./ref-out/ | grep -e '.*\.out$'`
     do
         ((ALL++))
-        java -jar jexamxml/jexamxml.jar ./moj-out/"$i" ./ref-out/"$i" delta.xml jexamxml/cls_options 1>/dev/null
+        java -jar jexamxml/jexamxml.jar ./moj-out/"$i" ./ref-out/"$i" delta.xml ./cls_options 1>/dev/null
         m=$?
         if [ ! -s ./ref-out/"$i" ]; then
             d=`diff -aN ./moj-out/"${i%.out}.!!!" ./ref-out/"${i%.out}.!!!" 2> /dev/null`
@@ -288,6 +308,19 @@ for i in `ls ./ref-out/ | grep -e '.*\.out$'`
             fi
         fi
     done
+    #one for pretty-XML=7
+    ((ALL++))
+    d=`grep -o '^\([[:space:]]*\)' "${LOCAL_OUT_PATH2}"test031D.outD`
+    f=`cat ./ref-out/test031D.outD`
+    v=`diff -aN <(echo "$d") <(echo "$f")`
+    if [ $? -ne 0 ]; then
+      printf "${GREEN}---------------------------------------------------${END}\n"
+      ((COUNT++))
+      printf "${RED}Wrong format when pretty-xml=7, test031D \n"
+    fi
+
+
+
     rm moj-out/*
     PASSED=$((ALL-COUNT))
     printf "${GREEN}===================================================${END}\n"

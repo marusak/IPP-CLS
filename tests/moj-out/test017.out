@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<class kind="abstract" name="____">
+    <inheritance>
+        <from name="a011a" privacy="private"/>
+        <from name="classB" privacy="protected"/>
+    </inheritance>
+    <private>
+        <methods>
+            <method name="a_b_c_0" scope="instance" type="int">
+                <from name="Aclass"/>
+                <virtual pure="yes"/>
+                <arguments/>
+            </method>
+        </methods>
+    </private>
+    <protected>
+        <attributes>
+            <attribute name="Aa_00_b" scope="instance" type="int">
+                <from name="classB"/>
+            </attribute>
+        </attributes>
+    </protected>
+</class>

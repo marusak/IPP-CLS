@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<model>
+    <class kind="abstract" name="A">
+        <class kind="concrete" name="B">
+            <class kind="concrete" name="D">
+                <class kind="concrete" name="E"/>
+            </class>
+        </class>
+        <class kind="abstract" name="C">
+            <class kind="concrete" name="D">
+                <class kind="concrete" name="E"/>
+            </class>
+        </class>
+    </class>
+</model>

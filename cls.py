@@ -7,19 +7,13 @@ import re
 from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
-# TODO test na konstuktor a destruktor
 # TODO test kde --detail na nieco co neexistuje -- len hlavicka //FORUM
-# TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
-# TODO DIFF test na pretty-xml = 7 jedinecne + diff
-# TODO viackrat dedenie z jednej v zapise?
-# TODO viackrat using na to iste z jednej/z dvoch tried?
+# TODO viackrat using na to iste z jednej/z dvoch tried?i, chyba base class, je private...
 
 # ---------
 # TODO 6(obcas ano, obcas nie - !!), 11 FORUM, 12 nepodporujem zatial
 # TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
-# TODO konstruktor, destruktor sa nededia!!
 # TODO ak pri search neewxistuje, vypise sa len hlavicka//FORUM
-# TODO viackrat dedenie z jednej v zapise?
 # TODO viackrat using na to iste z jednej/z dvoch tried?
 
 
@@ -72,7 +66,7 @@ def parseCommandLine(cmd_line):
 
 def getToken(acc):
     """Return one token."""
-    result = re.match("\s*(\w+|\{|\}|\(|\)|;|\=|,|:|\*|&)\s*([\s\S]*)", acc)
+    result = re.match("\s*(\w+|\{|\}|\(|\)|;|\=|,|:|\*|&|~)\s*([\s\S]*)", acc)
     if (result is None):
         error("Token nepozna typ "+acc+"\n", 69)
     if (result.group(1) == ":" and result.group(2)[0] == ":"):  # ::
@@ -147,6 +141,8 @@ def parseClasses(cls):
                     error("Neda sa dedit z triedy, ktora neexistuje", 4)
                 if classes[papaName] == 'declared':
                     error("Neda sa dedit z triedy, ktora je len deklarovana", 4)
+                if (papaName in parents.keys()):
+                    error("Duplicate base class", 4)
                 parents[papaName] = token
             else:
                 if token not in classes.keys():
@@ -200,22 +196,80 @@ def parseClasses(cls):
                 token, cls = getToken(cls)
                 usingM[whatName, f_arg_types] = (fromName, privacy, f_arg_names)
                 continue
+            if (token == "~"):  # Destructor
+                name, cls = getToken(cls)
+                if (name != className):
+                    error("Destructor but with wrong name", 4)
+                name = "~"+name
+                token, cls = getToken(cls)
+                token, cls = getToken(cls)
+                if (token != ")"):
+                    error("Destructor does not have any arguments", 4)
+                token, cls = getToken(cls)
+                if (token == ";"):
+                    if ((name, ()) in methods.keys()):
+                        error("Overloading of destructor", 4)
+                    methods[name, ()] = ["void", (), "declared", virtual,
+                                         False, privacy, static, className]
+                    token, cls = getToken(cls)
+                    continue
+                token, cls = getToken(cls)  # }
+                if (token != "}"):
+                    print (token)
+                    print (cls)
+                    error("What was that, destructor stuff", 4)
+                token, cls = getToken(cls)
+                if (token == ";"):
+                    token, cls = getToken(cls)
+                if ((name, ()) in methods.keys()):
+                    error("Redefinicia destuktoru", 4)
+                methods[name, ()] = ["void", (), "defined", virtual,
+                                     False, privacy, static, className]
+                continue
+            if (token == className):  # Contructor
+                name = token
+                token, cls = getToken(cls)
+                f_arg_types = ()
+                f_arg_names = ()
+                cls, f_arg_names, f_arg_types = getFArgs(cls)
+                token, cls = getToken(cls)
+                if (token == ";"):  # constructor declaration
+                    if ((name, f_arg_types) in methods.keys()):
+                        error("Overloading of constructor", 4)
+                    methods[name, f_arg_types] = [name, f_arg_names,
+                                                  "declared", virtual,
+                                                  False, privacy, static,
+                                                  className]
+                    token, cls = getToken(cls)
+                    continue
+                token, cls = getToken(cls)  # {
+                if (token != "}"):
+                    error("What was that, constructor stuff", 4)
+                token, cls = getToken(cls)
+                if (token == ";"):
+                    token, cls = getToken(cls)
+                if ((name, f_arg_types) in methods.keys()):
+                    error("Redefinicia constructoru", 4)
+                methods[name, f_arg_types] = [name, f_arg_names, "defined",
+                                              virtual, False, privacy,
+                                              static, className]
+                continue
             acc_type, cls = getType(token, cls)  # get type
             token, cls = getToken(cls)  # get name
             acc_name = token
             token, cls = getToken(cls)
             if (token == ";"):  # instance declaration
-                if (acc_name not in instances.keys()):
-                    instances[acc_name] = [acc_type, "declared", virtual,
-                                           privacy, static, className]
+                if (acc_name in instances.keys()):
+                    error("Overloading of instance", 4)
+                instances[acc_name] = [acc_type, "declared", virtual,
+                                       privacy, static, className]
                 token, cls = getToken(cls)
                 continue
             if (token == "="):  # instance definition
                 while (token != ";"):
                     token, cls = getToken(cls)
                 if (acc_name in instances.keys()):
-                    if instances[acc_name][1] == 'defined':
-                        error("Redefinicia instancie", 4)
+                    error("Redefinicia instancie", 4)
                 instances[acc_name] = [acc_type, "defined",
                                        virtual, privacy, static, className]
                 token, cls = getToken(cls)
@@ -230,25 +284,26 @@ def parseClasses(cls):
             cls, f_arg_names, f_arg_types = getFArgs(cls)
             token, cls = getToken(cls)
             if (token == ";"):  # method declaration
-                if ((acc_name, f_arg_types) not in methods.keys()):
-                    methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
-                                                      False, privacy, static, className]
+                if ((acc_name, f_arg_types) in methods.keys()):
+                    error("Redeklaracia metody", 4)
+                methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
+                                                  False, privacy, static, className]
                 token, cls = getToken(cls)
                 continue
             if (token == "="):  # pure virtual
                 token, cls = getToken(cls)  # 0 no control
                 token, cls = getToken(cls)  # no control
-                if ((acc_name, f_arg_types) not in methods.keys()):
-                    methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
-                                                      True, privacy, static, className]
+                if ((acc_name, f_arg_types) in methods.keys()):
+                    error("Redeklaracia metody", 4)
+                methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
+                                                  True, privacy, static, className]
                 token, cls = getToken(cls)
                 continue
             if (token != "{"):
                 error("I dont know the input character1 "+token+" "+cls, 4)
             token, cls = getToken(cls)  # }
             if ((acc_name, f_arg_types) in methods.keys()):
-                if (methods[acc_name, f_arg_types][2] == 'defined'):
-                    error("Redefinicia metody", 4)
+                error("Redefinicia metody", 4)
             methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "defined", virtual,
                                               False, privacy, static, className]
             token, cls = getToken(cls)  # ;
@@ -277,6 +332,8 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
     @return: (true ,method) or (false,..) if nothing to be done (error is called when needed)
     """
     if (m[5] == 'private' and not m[4]):  # when private, no need to do anything
+        return (False, [])
+    if (m_t[0] == fromP[0] or m_t[0] == '~'+fromP[0]):
         return (False, [])
     if m_t not in to.keys() and m_t not in conflicts.keys():
         if (m[4]):  # pure virtual
