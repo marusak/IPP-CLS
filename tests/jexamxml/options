@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<model>
-<!-- Changed Element:old -->
-<class kind="concreat" name="C">
-</class>
-<!-- Changed Element:new -->
-<class name="C" kind="concrete">
-</class>
-</model>

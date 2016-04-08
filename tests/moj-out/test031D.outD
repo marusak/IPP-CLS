@@ -1,8 +1,0 @@
-<?xml version="1.0" ?>
-<class kind="concrete" name="A">
-       <private>
-              <attributes>
-                     <attribute name="a" scope="instance" type="int"/>
-              </attributes>
-       </private>
-</class>

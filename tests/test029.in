@@ -1,3 +1,0 @@
-class A{
-};
-class B: public A, private A {};
