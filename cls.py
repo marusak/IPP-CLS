@@ -11,8 +11,7 @@ from xml.dom import minidom
 # TODO viackrat using na to iste z jednej/z dvoch tried?i, chyba base class, je private...
 
 # ---------
-# TODO 6(obcas ano, obcas nie - !!), 11 FORUM, 12 nepodporujem zatial
-# TODO privatne sa dedia ale nevypisuju (kvoli konfliktom) !! test z fora k test03 !!
+# TODO 11 FORUM, 12 nepodporujem zatial
 # TODO ak pri search neewxistuje, vypise sa len hlavicka//FORUM
 # TODO viackrat using na to iste z jednej/z dvoch tried?
 
@@ -116,8 +115,7 @@ def parseClasses(cls):
     [1] = methods ((Name, arguments_types) return_type, argumenst_names defined/declared,
         virtual, pureVirtual, privacy, static, from, printable)
     [2] = instances((Name), type, defined/declared, virtual, privacy,static,from, printable)
-    [3] = usings [1] methods (name, arguments_types) from, privacy, argumenst_names
-                 [2] instances (name) from, privacy
+    [3] = usings (name) from, privacy
     """
     classes = {}
     while (cls != ""):
@@ -130,8 +128,7 @@ def parseClasses(cls):
         parents = {}
         methods = {}
         instances = {}
-        usingM = {}
-        usingI = {}
+        using = {}
         while (token != "{" and token != ";"):
             token, cls = getToken(cls)  # comma, no control
             # read the inheritance
@@ -184,17 +181,11 @@ def parseClasses(cls):
                 fromName, cls = getToken(cls)
                 token, cls = getToken(cls)  # ::
                 whatName, cls = getToken(cls)
-                token, cls = getToken(cls)  # ; or (
-                if (token == ";"):
-                    usingI[whatName] = (fromName, privacy)
-                    token, cls = getToken(cls)
-                    continue
-                elif (token != "("):
-                    error("Dont know type", 4)
-                cls, f_arg_names, f_arg_types = getFArgs(cls)
                 token, cls = getToken(cls)  # ;
+                if (token != ";"):
+                    error("Nespravna praca s using vramci kontextu IPP-CLS", 4)
+                using[whatName] = (fromName, privacy)
                 token, cls = getToken(cls)
-                usingM[whatName, f_arg_types] = (fromName, privacy, f_arg_names)
                 continue
             if (token == "~"):  # Destructor
                 name, cls = getToken(cls)
@@ -261,6 +252,8 @@ def parseClasses(cls):
             if (token == ";"):  # instance declaration
                 if (acc_name in instances.keys()):
                     error("Overloading of instance", 4)
+                if (acc_name in [c[0] for c in methods.keys()]):
+                    error("Variable name cannot be a method name as well", 4)
                 instances[acc_name] = [acc_type, "declared", virtual,
                                        privacy, static, className, True]
                 token, cls = getToken(cls)
@@ -270,6 +263,8 @@ def parseClasses(cls):
                     token, cls = getToken(cls)
                 if (acc_name in instances.keys()):
                     error("Redefinicia instancie", 4)
+                if (acc_name in [c[0] for c in methods.keys()]):
+                    error("Variable name cannot be a method name as well", 4)
                 instances[acc_name] = [acc_type, "defined",
                                        virtual, privacy, static, className, True]
                 token, cls = getToken(cls)
@@ -286,6 +281,8 @@ def parseClasses(cls):
             if (token == ";"):  # method declaration
                 if ((acc_name, f_arg_types) in methods.keys()):
                     error("Redeklaracia metody", 4)
+                if (acc_name in instances.keys()):
+                    error("Variable name cannot be a method name as well", 4)
                 methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
                                                   False, privacy, static, className, True]
                 token, cls = getToken(cls)
@@ -295,6 +292,8 @@ def parseClasses(cls):
                 token, cls = getToken(cls)  # no control
                 if ((acc_name, f_arg_types) in methods.keys()):
                     error("Redeklaracia metody", 4)
+                if (acc_name in instances.keys()):
+                    error("Variable name cannot be a method name as well", 4)
                 methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
                                                   True, privacy, static, className, True]
                 token, cls = getToken(cls)
@@ -304,6 +303,8 @@ def parseClasses(cls):
             token, cls = getToken(cls)  # }
             if ((acc_name, f_arg_types) in methods.keys()):
                 error("Redefinicia metody", 4)
+            if (acc_name in instances.keys()):
+                error("Variable name cannot be a method name as well", 4)
             methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "defined", virtual,
                                               False, privacy, static, className, True]
             token, cls = getToken(cls)  # ;
@@ -312,11 +313,11 @@ def parseClasses(cls):
         token, cls = getToken(cls)  # ; or another class
         if (className in classes.keys()):  # uz mame danu triedu vnutri
             if (classes[className] == "declared"):
-                classes[className] = [parents, methods, instances, [{}, usingM, usingI]]
+                classes[className] = [parents, methods, instances, using]
             else:
                 error("redefinicia triedy", 4)
         else:
-            classes[className] = [parents, methods, instances, [{}, usingM, usingI]]
+            classes[className] = [parents, methods, instances, using]
 
     return classes
 
@@ -336,7 +337,7 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
         printable = False
     if (m_t[0] == fromP[0] or m_t[0] == '~'+fromP[0]):
         return (False, [])
-    if m_t not in to.keys() and m_t not in conflicts.keys():
+    if m_t not in to.keys() and m_t[0] not in conflicts.keys():
         if (m[4]):  # pure virtual
             return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], printable])
         elif (fromP[1] == 'private'):
@@ -345,10 +346,10 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
             return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6], fromP[0], printable])
         else:
             return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], fromP[0], printable])
-    elif m_t in conflicts.keys():
-        if (m[7] == conflicts[m_t][0]):
+    elif m_t[0] in conflicts.keys():
+        if (m[7] == conflicts[m_t[0]][0]):
             return (True, [m[0], m[1], m[2], m[3], m[4],
-                    conflicts[m_t][1], m[6], conflicts[m_t][0], printable])
+                    conflicts[m_t[0]][1], m[6], conflicts[m_t[0]][0], printable])
         else:
             return (False, [])
     else:  # already in and not specified by conflict
@@ -424,14 +425,18 @@ def makeClassesComplete(cs):
                     # spracuj metody
                     for mt in cs[par][1].keys():
                         toDo, newM = editMethod([par, cs[item][0][par]], mt, cs[par][1][mt],
-                                                cs[item][1], item, cs[item][3][1])
+                                                cs[item][1], item, cs[item][3])
                         if (toDo):
+                            if (mt[0] in cs[item][2].keys()):
+                                error("Conflict - variable and method have the same name!", 21)
                             cs[item][1][mt] = newM
                     # spracuj instancie
                     for ins in cs[par][2].keys():
                         toDo, newI = editInstance([par, cs[item][0][par]], ins, cs[par][2][ins],
-                                                  cs[item][2], item, cs[item][3][2])
+                                                  cs[item][2], item, cs[item][3])
                         if (toDo):
+                            if (ins in [c[0] for c in cs[item][1].keys()]):
+                                error("Conflict - variable and method have the same name!", 21)
                             cs[item][2][ins] = newI
                 # add to solved classes (closed)
                 closed.append(item)
