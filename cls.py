@@ -1,6 +1,12 @@
 # !/usr/bin/python3
 # coding=utf-8
-"""xmarus06 STUFF."""
+#CLS:xmarus06
+"""Analyser of inheritance in C++ classes.
+
+Author: Matej Marusak, VUT FIT 2016, IPP-CLS proj. 2
+
+    The one and only file that was needed.
+"""
 from __future__ import print_function
 import sys
 import re
@@ -8,7 +14,8 @@ from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
 # TODO test kde --detail na nieco co neexistuje -- len hlavicka //FORUM
-# TODO viackrat using na to iste z jednej/z dvoch tried?i, chyba base class, je private...
+# TODO viackrat using na to iste z jednej/z dvoch tried?i,
+#      chyba base class, je private...
 
 # ---------
 # TODO 11 FORUM, 12 nepodporujem zatial
@@ -24,7 +31,26 @@ def error(message, error_code):
 
 def help():
     """Print help and exit."""
-    print("HELP")  # TODO more help
+    print ("\033[34m                    C++ Classes\033[0m \n")
+    print ("Input is a valid C++ header file.\n")
+    print ("Input is analysed and XML with classes hierarchy is created.\n")
+    print ("\nAuthor: Matej Marusak, xmarus06@stud.fit.vutbr.cz\n")
+    print ("As a school project for BUT FIT, Czech Republic, Subject :IPP\n")
+    print ("Created: April 2016\n\n\n")
+    print ("Usage: python3 cls.py --help\n")
+    print ("       python3 cls.py [--input=filename] [--output=filename] \
+[--pretty-xml[=k] [--details[=class] [--search=XPATH]\n")
+    print ("\nOptions:\n")
+    print ("     --help: Print this help and exit\n")
+    print ("     --input=filename: Input file in UTF-8. \
+If missing, stdin is considered.\n")
+    print ("     --output=filename: Output file in UTF-8. \
+If missing, stdout is considered.\n")
+    print ("     --pretty-xml: Print xml well formated with intend k spaces \
+(if k not specified, 4 is conisdered.\n")
+    print ("     --details=class: Output are details of class specified, \
+if class missing, all classes are printed\n")
+    print ("     --search=XPATH: Output is result of XPATH\n\n\n")
     exit(0)
 
 
@@ -54,10 +80,11 @@ def parseCommandLine(cmd_line):
            "details", "search", "conflicts")):
             error("Holy moly, what was that?!", 1)
         if ((matches.group(4) == "" or matches.group(4) is None) and
-            matches.group(1) != "details" and matches.group(1) != "pretty-xml" and
+            matches.group(1) != "details" and
+            matches.group(1) != "pretty-xml" and
            matches.group(1) != 'help'):
             error("I/O, details and search need som additional info", 1)
-        if (matches.group(1) == 'help' and matches.group(4) != ""):
+        if (matches.group(1) == 'help' and matches.group(4) is not None):
             error("Help does not take any arguments", 1)
         result[matches.group(1)] = matches.group(4)
     return result
@@ -112,9 +139,10 @@ def parseClasses(cls):
     Returns list of classes, where each class consists from:
     key = name
     [0] = list of parents (ClassName, type)
-    [1] = methods ((Name, arguments_types) return_type, argumenst_names defined/declared,
-        virtual, pureVirtual, privacy, static, from, printable)
-    [2] = instances((Name), type, defined/declared, virtual, privacy,static,from, printable)
+    [1] = methods ((Name, arguments_types) return_type, argumenst_names
+          def/decl, virtual, pureVirtual, privacy, static, from, printable)
+    [2] = instances((Name), type, def/decl, virtual, privacy,
+                           static,from, printable)
     [3] = usings (name) from, privacy
     """
     classes = {}
@@ -137,7 +165,7 @@ def parseClasses(cls):
                 if papaName not in classes.keys():
                     error("Neda sa dedit z triedy, ktora neexistuje", 4)
                 if classes[papaName] == 'declared':
-                    error("Neda sa dedit z triedy, ktora je len deklarovana", 4)
+                    error("Neda sa dedit z triedy, kt. je len deklarovana", 4)
                 if (papaName in parents.keys()):
                     error("Duplicate base class", 4)
                 parents[papaName] = token
@@ -145,7 +173,7 @@ def parseClasses(cls):
                 if token not in classes.keys():
                     error("Neda sa dedit z triedy, ktora neexistuje", 4)
                 if classes[token] == 'declared':
-                    error("Neda sa dedit z triedy, ktora je len deklarovana", 4)
+                    error("Neda sa dedit z triedy, kt. je len deklarovana", 4)
                 parents[token] = "private"
             token, cls = getToken(cls)
 
@@ -201,7 +229,8 @@ def parseClasses(cls):
                     if ((name, ()) in methods.keys()):
                         error("Overloading of destructor", 4)
                     methods[name, ()] = ["void", (), "declared", virtual,
-                                         False, privacy, static, className, True]
+                                         False, privacy, static,
+                                         className, True]
                     token, cls = getToken(cls)
                     continue
                 token, cls = getToken(cls)  # }
@@ -265,8 +294,8 @@ def parseClasses(cls):
                     error("Redefinicia instancie", 4)
                 if (acc_name in [c[0] for c in methods.keys()]):
                     error("Variable name cannot be a method name as well", 4)
-                instances[acc_name] = [acc_type, "defined",
-                                       virtual, privacy, static, className, True]
+                instances[acc_name] = [acc_type, "defined", virtual, privacy,
+                                       static, className, True]
                 token, cls = getToken(cls)
                 continue
             if (token != "("):
@@ -283,8 +312,10 @@ def parseClasses(cls):
                     error("Redeklaracia metody", 4)
                 if (acc_name in instances.keys()):
                     error("Variable name cannot be a method name as well", 4)
-                methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
-                                                  False, privacy, static, className, True]
+                methods[acc_name, f_arg_types] = [acc_type, f_arg_names,
+                                                  "declared", virtual, False,
+                                                  privacy, static, className,
+                                                  True]
                 token, cls = getToken(cls)
                 continue
             if (token == "="):  # pure virtual
@@ -294,8 +325,10 @@ def parseClasses(cls):
                     error("Redeklaracia metody", 4)
                 if (acc_name in instances.keys()):
                     error("Variable name cannot be a method name as well", 4)
-                methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "declared", virtual,
-                                                  True, privacy, static, className, True]
+                methods[acc_name, f_arg_types] = [acc_type, f_arg_names,
+                                                  "declared", virtual, True,
+                                                  privacy, static, className,
+                                                  True]
                 token, cls = getToken(cls)
                 continue
             if (token != "{"):
@@ -305,8 +338,9 @@ def parseClasses(cls):
                 error("Redefinicia metody", 4)
             if (acc_name in instances.keys()):
                 error("Variable name cannot be a method name as well", 4)
-            methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "defined", virtual,
-                                              False, privacy, static, className, True]
+            methods[acc_name, f_arg_types] = [acc_type, f_arg_names, "defined",
+                                              virtual, False, privacy, static,
+                                              className, True]
             token, cls = getToken(cls)  # ;
             if (token == ";"):
                 token, cls = getToken(cls)  # }
@@ -330,26 +364,30 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
     m - method we want to add
     to - all methods that are already in
     toWho - name of claas to which we want to add
-    @return: (true ,method) or (false,..) if nothing to be done (error is called when needed)
+    @return: (true ,method) or (false,..) if nothing to be done
     """
     printable = m[8]
-    if (m[5] == 'private' and not m[4]):  # when private, no need to do anything
+    if (m[5] == 'private' and not m[4]):  # private, no need to do anything
         printable = False
     if (m_t[0] == fromP[0] or m_t[0] == '~'+fromP[0]):
         return (False, [])
     if m_t not in to.keys() and m_t[0] not in conflicts.keys():
         if (m[4]):  # pure virtual
-            return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], printable])
+            return (True, [m[0], m[1], m[2], m[3], m[4],
+                    m[5], m[6], m[7], printable])
         elif (fromP[1] == 'private'):
-            return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6], fromP[0], printable])
+            return (True, [m[0], m[1], m[2], m[3], m[4],
+                    'private', m[6], fromP[0], printable])
         elif (fromP[1] == 'protected'):
-            return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6], fromP[0], printable])
+            return (True, [m[0], m[1], m[2], m[3], m[4],
+                    'protected', m[6], fromP[0], printable])
         else:
-            return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], fromP[0], printable])
+            return (True, [m[0], m[1], m[2], m[3], m[4],
+                    m[5], m[6], fromP[0], printable])
     elif m_t[0] in conflicts.keys():
         if (m[7] == conflicts[m_t[0]][0]):
-            return (True, [m[0], m[1], m[2], m[3], m[4],
-                    conflicts[m_t[0]][1], m[6], conflicts[m_t[0]][0], printable])
+            return (True, [m[0], m[1], m[2], m[3], m[4], conflicts[m_t[0]][1],
+                    m[6], conflicts[m_t[0]][0], printable])
         else:
             return (False, [])
     else:  # already in and not specified by conflict
@@ -358,13 +396,14 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
         elif (m[2] != 'declared' or to[m_t][2] != 'declared'):
             if (m[2] == 'defined'):
                 if (m[4]):  # pure virtual
-                    return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], printable])
+                    return (True, [m[0], m[1], m[2], m[3], m[4],
+                            m[5], m[6], m[7], printable])
                 elif (fromP[1] == 'private'):
-                    return (True, [m[0], m[1], m[2], m[3], m[4], 'private', m[6],
-                            fromP[0], printable])
+                    return (True, [m[0], m[1], m[2], m[3], m[4],
+                            'private', m[6], fromP[0], printable])
                 elif (fromP[1] == 'protected'):
-                    return (True, [m[0], m[1], m[2], m[3], m[4], 'protected', m[6],
-                            fromP[0], printable])
+                    return (True, [m[0], m[1], m[2], m[3], m[4],
+                            'protected', m[6], fromP[0], printable])
                 else:
                     return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6],
                             fromP[0], printable])
@@ -380,22 +419,25 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
     i - instance we want to add
     to - all instances that are already in
     toWho - name of claas to which we want to add
-    @return: (true ,method) or (false,..) if nothing to be done (error is called when needed)
+    @return: (true ,method) or (false,..) if nothing to be done
     """
-    # [2] = instances((Name), type, defined/declared, virtual, privacy,static,from)
     printable = i[6]
     if (i[3] == 'private'):  # when private, no need to do anything
         printable = False
     if i_t not in to.keys() and i_t not in conflicts.keys():
         if (fromP[1] == 'private'):
-            return (True, [i[0], i[1], i[2], 'private', i[4], fromP[0], printable])
+            return (True, [i[0], i[1], i[2], 'private', i[4],
+                    fromP[0], printable])
         elif (fromP[1] == 'protected'):
-            return (True, [i[0], i[1], i[2], 'protected', i[4], fromP[0], printable])
+            return (True, [i[0], i[1], i[2], 'protected', i[4],
+                    fromP[0], printable])
         else:
-            return (True, [i[0], i[1], i[2], i[3], i[4], fromP[0], printable])
+            return (True, [i[0], i[1], i[2], i[3], i[4],
+                    fromP[0], printable])
     elif i_t in conflicts.keys():
         if (i[5] == conflicts[i_t][0]):
-            return (True, [i[0], i[1], i[2], conflicts[i_t][1], i[4], conflicts[i_t][0], printable])
+            return (True, [i[0], i[1], i[2], conflicts[i_t][1], i[4],
+                    conflicts[i_t][0], printable])
         else:
             return (False, [])
     else:  # already in
@@ -424,19 +466,21 @@ def makeClassesComplete(cs):
                 for par in cs[item][0].keys():
                     # spracuj metody
                     for mt in cs[par][1].keys():
-                        toDo, newM = editMethod([par, cs[item][0][par]], mt, cs[par][1][mt],
-                                                cs[item][1], item, cs[item][3])
+                        toDo, newM = editMethod([par, cs[item][0][par]], mt,
+                                                cs[par][1][mt], cs[item][1],
+                                                item, cs[item][3])
                         if (toDo):
                             if (mt[0] in cs[item][2].keys()):
-                                error("Conflict - variable and method have the same name!", 21)
+                                error("Variable and method share name!", 21)
                             cs[item][1][mt] = newM
                     # spracuj instancie
                     for ins in cs[par][2].keys():
-                        toDo, newI = editInstance([par, cs[item][0][par]], ins, cs[par][2][ins],
-                                                  cs[item][2], item, cs[item][3])
+                        toDo, newI = editInstance([par, cs[item][0][par]], ins,
+                                                  cs[par][2][ins], cs[item][2],
+                                                  item, cs[item][3])
                         if (toDo):
                             if (ins in [c[0] for c in cs[item][1].keys()]):
-                                error("Conflict - variable and method have the same name!", 21)
+                                error("Variable and method share name!", 21)
                             cs[item][2][ins] = newI
                 # add to solved classes (closed)
                 closed.append(item)
@@ -472,7 +516,8 @@ def makeXMLInstance(name, atts, top, fromWho):
     if (not atts[6]):
         return
     stat = 'static' if (atts[4]) else 'instance'
-    i = SubElement(top, 'attribute', {'name': name, 'type': atts[0], 'scope': stat})
+    i = SubElement(top, 'attribute',
+                   {'name': name, 'type': atts[0], 'scope': stat})
     if (atts[5] != fromWho[0]):
         SubElement(i, 'from', {'name': atts[5]})
 
@@ -480,8 +525,6 @@ def makeXMLInstance(name, atts, top, fromWho):
 def makeXMLMethod(name, atts, top, fromWho):
     """Create XML for one method.
 
-    [1] = methods ((Name, arguments_types) return_type, argumenst_names defined/declared,
-        virtual, pureVirtual, privacy, static, from)
     name - name of method
     atts - attributes of method
     top - parent element
@@ -493,7 +536,8 @@ def makeXMLMethod(name, atts, top, fromWho):
         stat = 'static'
     else:
         stat = 'instance'
-    m = SubElement(top, 'method', {'name': name[0], 'type': atts[0], 'scope': stat})
+    m = SubElement(top, 'method',
+                   {'name': name[0], 'type': atts[0], 'scope': stat})
     if (atts[7] != fromWho[0]):
         SubElement(m, 'from', {'name': atts[7]})
     if (atts[3] or atts[4]):
@@ -504,14 +548,15 @@ def makeXMLMethod(name, atts, top, fromWho):
         SubElement(m, 'virtual', {'pure': pure})
     args = SubElement(m, 'arguments')
     for arg in range(len(name[1])):
-        SubElement(args, 'argument', {'name': atts[1][arg], 'type': name[1][arg]})
+        SubElement(args, 'argument',
+                   {'name': atts[1][arg], 'type': name[1][arg]})
 
 
 def getXMLClassDetails(name, atts, t):
     """Create a xml detail of one class.
 
     name - name of className
-    atts - all attributes of class (output from makeClassComplete or parseClasses)
+    atts - all attributes of class (out from makeClassComplete or parseClasses)
     t - if not false, put new class on that
     @return - element of class acc
     """
@@ -529,7 +574,8 @@ def getXMLClassDetails(name, atts, t):
     if (atts[0]):
         inheritance = SubElement(top, 'inheritance')
         for base in atts[0].keys():
-            SubElement(inheritance, 'from', {'name': base, 'privacy': atts[0][base]})
+            SubElement(inheritance, 'from',
+                       {'name': base, 'privacy': atts[0][base]})
 
     # find all:
     private_m = [c for c in atts[1].keys() if atts[1][c][5] == 'private']
@@ -613,7 +659,8 @@ def main():
             if (parsed['details'] not in parsedClasses.keys()):
                 # TODO len hlavicka
                 pass
-            top = getXMLClassDetails(parsed['details'], parsedClasses[parsed['details']], False)
+            top = getXMLClassDetails(parsed['details'],
+                                     parsedClasses[parsed['details']], False)
         else:  # all the classes
             top = Element('model')
             for cl in parsedClasses.keys():
