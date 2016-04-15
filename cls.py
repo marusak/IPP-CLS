@@ -13,14 +13,10 @@ import re
 from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
-# TODO test kde --detail na nieco co neexistuje -- len hlavicka //FORUM
-# TODO viackrat using na to iste z jednej/z dvoch tried?i,
-#      chyba base class, je private...
-
 # ---------
 # TODO 11 FORUM, 12 nepodporujem zatial
 # TODO ak pri search neewxistuje, vypise sa len hlavicka//FORUM
-# TODO viackrat using na to iste z jednej/z dvoch tried?
+# TODO using spristupni vsetky symboly/riesi len koflikty?i
 
 
 def error(message, error_code):
@@ -56,6 +52,8 @@ if class missing, all classes are printed\n")
 
 def prettify(elem, n):
     """Return a pretty-printed XML string - from pymotw.com."""
+    if (elem == []):
+        return('<?xml version="1.0" encoding="utf-8"?>\n')
     if (isinstance(elem, str)):
         return (" "*n+elem)
     rough_string = tostring(elem)
@@ -82,7 +80,8 @@ def parseCommandLine(cmd_line):
         if ((matches.group(4) == "" or matches.group(4) is None) and
             matches.group(1) != "details" and
             matches.group(1) != "pretty-xml" and
-           matches.group(1) != 'help'):
+           matches.group(1) != 'help' and
+           matches.group(1) != 'conflicts'):
             error("I/O, details and search need som additional info", 1)
         if (matches.group(1) == 'help' and matches.group(4) is not None):
             error("Help does not take any arguments", 1)
@@ -144,6 +143,7 @@ def parseClasses(cls):
     [2] = instances((Name), type, def/decl, virtual, privacy,
                            static,from, printable)
     [3] = usings (name) from, privacy
+    [4] = conflicts
     """
     classes = {}
     while (cls != ""):
@@ -174,6 +174,8 @@ def parseClasses(cls):
                     error("Neda sa dedit z triedy, ktora neexistuje", 4)
                 if classes[token] == 'declared':
                     error("Neda sa dedit z triedy, kt. je len deklarovana", 4)
+                if (token in parents.keys()):
+                    error("Duplicate base class", 4)
                 parents[token] = "private"
             token, cls = getToken(cls)
 
@@ -207,6 +209,8 @@ def parseClasses(cls):
                 continue
             if (token == "using"):
                 fromName, cls = getToken(cls)
+                if (fromName not in parents.keys()):
+                    error("Neda sa using z triedy z ktorej sa nededi", 4)
                 token, cls = getToken(cls)  # ::
                 whatName, cls = getToken(cls)
                 token, cls = getToken(cls)  # ;
@@ -347,11 +351,11 @@ def parseClasses(cls):
         token, cls = getToken(cls)  # ; or another class
         if (className in classes.keys()):  # uz mame danu triedu vnutri
             if (classes[className] == "declared"):
-                classes[className] = [parents, methods, instances, using]
+                classes[className] = [parents, methods, instances, using, []]
             else:
                 error("redefinicia triedy", 4)
         else:
-            classes[className] = [parents, methods, instances, using]
+            classes[className] = [parents, methods, instances, using, []]
 
     return classes
 
@@ -369,23 +373,20 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
     printable = m[8]
     if (m[5] == 'private' and not m[4]):  # private, no need to do anything
         printable = False
+    privacy = m[5]
+    if (fromP[1] != 'public'):
+        privacy = fromP[1]
     if (m_t[0] == fromP[0] or m_t[0] == '~'+fromP[0]):
         return (False, [])
     if m_t not in to.keys() and m_t[0] not in conflicts.keys():
         if (m[4]):  # pure virtual
             return (True, [m[0], m[1], m[2], m[3], m[4],
                     m[5], m[6], m[7], printable])
-        elif (fromP[1] == 'private'):
-            return (True, [m[0], m[1], m[2], m[3], m[4],
-                    'private', m[6], fromP[0], printable])
-        elif (fromP[1] == 'protected'):
-            return (True, [m[0], m[1], m[2], m[3], m[4],
-                    'protected', m[6], fromP[0], printable])
         else:
             return (True, [m[0], m[1], m[2], m[3], m[4],
-                    m[5], m[6], fromP[0], printable])
+                    privacy, m[6], fromP[0], printable])
     elif m_t[0] in conflicts.keys():
-        if (m[7] == conflicts[m_t[0]][0]):
+        if (fromP[0] == conflicts[m_t[0]][0]):
             return (True, [m[0], m[1], m[2], m[3], m[4], conflicts[m_t[0]][1],
                     m[6], conflicts[m_t[0]][0], printable])
         else:
@@ -393,22 +394,15 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
     else:  # already in and not specified by conflict
         if (to[m_t][7] == toWho):
             return (False, [])
-        elif (m[2] != 'declared' or to[m_t][2] != 'declared'):
-            if (m[2] == 'defined'):
-                if (m[4]):  # pure virtual
-                    return (True, [m[0], m[1], m[2], m[3], m[4],
-                            m[5], m[6], m[7], printable])
-                elif (fromP[1] == 'private'):
-                    return (True, [m[0], m[1], m[2], m[3], m[4],
-                            'private', m[6], fromP[0], printable])
-                elif (fromP[1] == 'protected'):
-                    return (True, [m[0], m[1], m[2], m[3], m[4],
-                            'protected', m[6], fromP[0], printable])
-                else:
-                    return (True, [m[0], m[1], m[2], m[3], m[4], m[5], m[6],
-                            fromP[0], printable])
         else:
-            error("Conflict on method "+m_t[0], 21)
+            return (False, [m_t[0],
+                    ['method',
+                    [m[0], m[1], m[2], m[3], m[4], privacy, m[6], m[7], True],
+                    m_t],
+                    ['method',
+                    [to[m_t][0], to[m_t][1], to[m_t][2], to[m_t][3], to[m_t][4],
+                     to[m_t][5], to[m_t][6], to[m_t][7], True], m_t]
+                    ])
 
 
 def editInstance(fromP, i_t, i, to, toWho, conflicts):
@@ -424,18 +418,14 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
     printable = i[6]
     if (i[3] == 'private'):  # when private, no need to do anything
         printable = False
+    privacy = i[3]
+    if (fromP[1] != 'public'):
+        privacy = fromP[1]
     if i_t not in to.keys() and i_t not in conflicts.keys():
-        if (fromP[1] == 'private'):
-            return (True, [i[0], i[1], i[2], 'private', i[4],
-                    fromP[0], printable])
-        elif (fromP[1] == 'protected'):
-            return (True, [i[0], i[1], i[2], 'protected', i[4],
-                    fromP[0], printable])
-        else:
-            return (True, [i[0], i[1], i[2], i[3], i[4],
-                    fromP[0], printable])
+        return (True, [i[0], i[1], i[2], privacy, i[4],
+                fromP[0], printable])
     elif i_t in conflicts.keys():
-        if (i[5] == conflicts[i_t][0]):
+        if (fromP[0] == conflicts[i_t][0]):
             return (True, [i[0], i[1], i[2], conflicts[i_t][1], i[4],
                     conflicts[i_t][0], printable])
         else:
@@ -444,7 +434,11 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
         if (to[i_t][5] == toWho):
             return (False, [])
         else:
-            error("Conflict on instance "+i_t, 21)
+            return (False, [i_t,
+                    ['instance', [i[0], i[1], i[2], privacy, i[4], i[5], True]],
+                     ['instance', [to[i_t][0], to[i_t][1], to[i_t][2], to[i_t][3],
+                      to[i_t][4], to[i_t][5], True]]
+                    ])
 
 
 def makeClassesComplete(cs):
@@ -471,17 +465,32 @@ def makeClassesComplete(cs):
                                                 item, cs[item][3])
                         if (toDo):
                             if (mt[0] in cs[item][2].keys()):
-                                error("Variable and method share name!", 21)
-                            cs[item][1][mt] = newM
+                                cs[item][4].append([mt[0],
+                                                   ['method', newM, mt],
+                                                   ['instance', cs[item][2][mt[0]]]])
+                                del cs[item][2][mt[0]]
+                            else:
+                                cs[item][1][mt] = newM
+                        elif (newM != []):
+                            del cs[item][1][mt]
+                            cs[item][4].append(newM)
                     # spracuj instancie
                     for ins in cs[par][2].keys():
                         toDo, newI = editInstance([par, cs[item][0][par]], ins,
                                                   cs[par][2][ins], cs[item][2],
                                                   item, cs[item][3])
                         if (toDo):
-                            if (ins in [c[0] for c in cs[item][1].keys()]):
-                                error("Variable and method share name!", 21)
-                            cs[item][2][ins] = newI
+                            conf = [c for c in cs[item][1].keys() if c[0] == ins]
+                            if conf:
+                                cs[item][4].append([ins,
+                                                   ['method', cs[item][1][conf[0]], conf[0]],
+                                                   ['instance', newI]])
+                                del cs[item][1][conf[0]]
+                            else:
+                                cs[item][2][ins] = newI
+                        elif (newI != []):
+                            del cs[item][2][ins]
+                            cs[item][4].append(newI)
                 # add to solved classes (closed)
                 closed.append(item)
                 # remove from opened
@@ -518,7 +527,7 @@ def makeXMLInstance(name, atts, top, fromWho):
     stat = 'static' if (atts[4]) else 'instance'
     i = SubElement(top, 'attribute',
                    {'name': name, 'type': atts[0], 'scope': stat})
-    if (atts[5] != fromWho[0]):
+    if (fromWho and atts[5] != fromWho[0]):
         SubElement(i, 'from', {'name': atts[5]})
 
 
@@ -538,7 +547,7 @@ def makeXMLMethod(name, atts, top, fromWho):
         stat = 'instance'
     m = SubElement(top, 'method',
                    {'name': name[0], 'type': atts[0], 'scope': stat})
-    if (atts[7] != fromWho[0]):
+    if (fromWho and atts[7] != fromWho[0]):
         SubElement(m, 'from', {'name': atts[7]})
     if (atts[3] or atts[4]):
         if atts[4]:
@@ -578,13 +587,13 @@ def getXMLClassDetails(name, atts, t):
                        {'name': base, 'privacy': atts[0][base]})
 
     # find all:
-    private_m = [c for c in atts[1].keys() if atts[1][c][5] == 'private']
-    public_m = [c for c in atts[1].keys() if atts[1][c][5] == 'public']
-    protected_m = [c for c in atts[1].keys() if atts[1][c][5] == 'protected']
+    private_m = [c for c in atts[1].keys() if atts[1][c][5] == 'private' and atts[1][c][8]]
+    public_m = [c for c in atts[1].keys() if atts[1][c][5] == 'public' and atts[1][c][8]]
+    protected_m = [c for c in atts[1].keys() if atts[1][c][5] == 'protected' and atts[1][c][8]]
 
-    private_i = [c for c in atts[2].keys() if atts[2][c][3] == 'private']
-    public_i = [c for c in atts[2].keys() if atts[2][c][3] == 'public']
-    protected_i = [c for c in atts[2].keys() if atts[2][c][3] == 'protected']
+    private_i = [c for c in atts[2].keys() if atts[2][c][3] == 'private' and atts[2][c][6]]
+    public_i = [c for c in atts[2].keys() if atts[2][c][3] == 'public' and atts[2][c][6]]
+    protected_i = [c for c in atts[2].keys() if atts[2][c][3] == 'protected' and atts[2][c][6]]
 
     if (private_m or private_i):
         private = SubElement(top, 'private')
@@ -622,6 +631,50 @@ def getXMLClassDetails(name, atts, t):
         prot_i = SubElement(protected, 'attributes')
         for i in protected_i:
             makeXMLInstance(i, atts[2][i], prot_i, name)
+    if (atts[4]):
+        conflicts = SubElement(top, 'conflicts')
+        for con in atts[4]:
+            member = SubElement(conflicts, 'member', {'name': con[0]})
+            from1 = con[1][1][5] if con[1][0] == 'instance' else con[1][1][7]
+            from2 = con[2][1][5] if con[2][0] == 'instance' else con[2][1][7]
+            privacy1 = con[1][1][3] if con[1][0] == 'instance' else con[1][1][5]
+            privacy2 = con[2][1][3] if con[2][0] == 'instance' else con[2][1][5]
+            if (from1 == from2):
+                cl = SubElement(member, 'class', {'name': from1})
+                if (privacy1 == privacy2):
+                    priv = SubElement(cl, privacy1)
+                    if con[1][0] == 'instance':
+                        makeXMLInstance(con[0], con[1][1], priv, False)
+                    else:
+                        makeXMLMethod(con[1][2], con[1][1], priv, False)
+                    if con[2][0] == 'instance':
+                        makeXMLInstance(con[0], con[2][1], priv, False)
+                    else:
+                        makeXMLMethod(con[2][2], con[2][1], priv, False)
+                else:
+                    priv1 = SubElement(cl, privacy1)
+                    priv2 = SubElement(cl, privacy2)
+                    if con[1][0] == 'instance':
+                        makeXMLInstance(con[0], con[1][1], priv1, False)
+                    else:
+                        makeXMLMethod(con[1][2], con[1][1], priv1, False)
+                    if con[2][0] == 'instance':
+                        makeXMLInstance(con[0], con[2][1], priv2, False)
+                    else:
+                        makeXMLMethod(con[2][2], con[2][1], priv2, False)
+            else:
+                cl1 = SubElement(member, 'class', {'name': from1})
+                cl2 = SubElement(member, 'class', {'name': from2})
+                priv1 = SubElement(cl1, privacy1)
+                priv2 = SubElement(cl2, privacy2)
+                if con[1][0] == 'instance':
+                    makeXMLInstance(con[0], con[1][1], priv1, False)
+                else:
+                    makeXMLMethod(con[1][2], con[1][1], priv1, False)
+                if con[2][0] == 'instance':
+                    makeXMLInstance(con[0], con[2][1], priv2, False)
+                else:
+                    makeXMLMethod(con[2][2], con[2][1], priv2, False)
     return top
 
 
@@ -643,6 +696,9 @@ def main():
     inputContent = inputStream.read()
     parsedClasses = parseClasses(inputContent)
     parsedClasses = makeClassesComplete(parsedClasses)
+    if ('conflicts' not in parsed.keys() and
+       [c for c in parsedClasses.keys() if parsedClasses[c][4]]):
+        error("Conflict", 21)
 
     if ('pretty-xml' in parsed.keys()):
         pretty = 4 if not parsed['pretty-xml'] else int(parsed['pretty-xml'])
@@ -650,17 +706,19 @@ def main():
         pretty = 4
 
     if ('details' not in parsed.keys()):
-        top = Element('model')
-        base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
-        for b in base:
-            getXMLHierarchy(b, parsedClasses, top)
+        if not parsedClasses:
+            top = []
+        else:
+            top = Element('model')
+            base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
+            for b in base:
+                getXMLHierarchy(b, parsedClasses, top)
     else:
         if (parsed['details']):
-            if (parsed['details'] not in parsedClasses.keys()):
-                # TODO len hlavicka
-                pass
-            top = getXMLClassDetails(parsed['details'],
-                                     parsedClasses[parsed['details']], False)
+            top = []
+            if (parsed['details'] in parsedClasses.keys()):
+                top = getXMLClassDetails(parsed['details'],
+                                         parsedClasses[parsed['details']], False)
         else:  # all the classes
             top = Element('model')
             for cl in parsedClasses.keys():
@@ -670,12 +728,14 @@ def main():
             top = Element('result')
             toWrite = ""
             if r:
-                for item in r:
+                for item in sorted(r):
                     if (isinstance(item, str)):
                         toWrite += "\n" + pretty * " " + item
                     else:
                         top.append(item)
                 top.text = toWrite+"\n"
+            else:
+                pass  # TODO len hlavicka alebo tak volako
     final = prettify(top, pretty)
     if ("output" not in keys):
         outputStream = sys.stdout
