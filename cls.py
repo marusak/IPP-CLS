@@ -14,8 +14,7 @@ from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
 # ---------
-# TODO 11 FORUM, 12 nepodporujem zatial
-# TODO ak pri search neewxistuje, vypise sa len hlavicka//FORUM
+# TODO 11 FORUM
 # TODO using spristupni vsetky symboly/riesi len koflikty?i
 
 
