@@ -81,6 +81,8 @@ def parseCommandLine(cmd_line):
         if (matches.group(1) == 'help' and matches.group(4) is not None):
             error("Help does not take any arguments", 1)
         result[matches.group(1)] = matches.group(4)
+    if ('conflicts' in result and 'details' not in result):
+        error("Conflicts without detials", 1)
     return result
 
 
@@ -192,11 +194,19 @@ def parseClasses(cls):
             static = False
             if (token == "virtual"):
                 virtual = True
+                if (static):
+                    error("Static and virtual!", 4)
                 token, cls = getToken(cls)
             if (token == "static"):
                 static = True
+                if (virtual):
+                    error("Static and virtual!", 4)
                 token, cls = getToken(cls)
-
+            if (token == "virtual"):
+                virtual = True
+                if (static):
+                    error("Static and virtual!", 4)
+                token, cls = getToken(cls)
             if (token in ("private", "protected", "public")):
                 privacy = token
                 token, cls = getToken(cls)  # :, no control
@@ -392,7 +402,7 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
         else:
             return (False, [m_t[0],
                     ['method',
-                    [m[0], m[1], m[2], m[3], m[4], privacy, m[6], m[7], True],
+                    [m[0], m[1], m[2], m[3], m[4], privacy, m[6], fromP[0], True],
                     m_t],
                     ['method',
                     [to[m_t][0], to[m_t][1], to[m_t][2], to[m_t][3], to[m_t][4],
@@ -430,7 +440,7 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
             return (False, [])
         else:
             return (False, [i_t,
-                    ['instance', [i[0], i[1], i[2], privacy, i[4], i[5], True]],
+                    ['instance', [i[0], i[1], i[2], privacy, i[4], fromP[0], True]],
                      ['instance', [to[i_t][0], to[i_t][1], to[i_t][2], to[i_t][3],
                       to[i_t][4], to[i_t][5], True]]
                     ])
@@ -486,6 +496,9 @@ def makeClassesComplete(cs):
                         elif (newI != []):
                             del cs[item][2][ins]
                             cs[item][4].append(newI)
+                    # pridaj vsetky konflikty
+                    for parCon in cs[par][4]:
+                        cs[item][4].append(parCon)
                 # add to solved classes (closed)
                 closed.append(item)
                 # remove from opened
