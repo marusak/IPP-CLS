@@ -13,10 +13,6 @@ import re
 from lxml.etree import Element, SubElement, tostring
 from xml.dom import minidom
 
-# ---------
-# TODO 11 FORUM
-# TODO using spristupni vsetky symboly/riesi len koflikty?i
-
 
 def error(message, error_code):
     """Print exit message to stderr and exit."""
@@ -705,13 +701,10 @@ def main():
         pretty = 4
 
     if ('details' not in parsed.keys()):
-        if not parsedClasses:
-            top = []
-        else:
-            top = Element('model')
-            base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
-            for b in base:
-                getXMLHierarchy(b, parsedClasses, top)
+        top = Element('model')
+        base = [c for c in parsedClasses.keys() if parsedClasses[c][0] == {}]
+        for b in base:
+            getXMLHierarchy(b, parsedClasses, top)
     else:
         if (parsed['details']):
             top = []
