@@ -330,6 +330,8 @@ def parseClasses(cls):
             if (token == "="):  # pure virtual
                 token, cls = getToken(cls)  # 0 no control
                 token, cls = getToken(cls)  # no control
+                if (not virtual):
+                    error("Pure cirtual ale nie virtual", 4)
                 if ((acc_name, f_arg_types) in methods.keys()):
                     error("Redeklaracia metody", 4)
                 if (acc_name in instances.keys()):
@@ -389,11 +391,11 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
                     m[5], m[6], m[7], printable])
         else:
             return (True, [m[0], m[1], m[2], m[3], m[4],
-                    privacy, m[6], fromP[0], printable])
+                    privacy, m[6], m[7], printable])
     elif m_t[0] in conflicts.keys():
         if (fromP[0] == conflicts[m_t[0]][0]):
             return (True, [m[0], m[1], m[2], m[3], m[4], conflicts[m_t[0]][1],
-                    m[6], conflicts[m_t[0]][0], printable])
+                    m[6], m[7], printable])
         else:
             return (False, [])
     else:  # already in and not specified by conflict
@@ -402,7 +404,7 @@ def editMethod(fromP, m_t, m, to, toWho, conflicts):
         else:
             return (False, [m_t[0],
                     ['method',
-                    [m[0], m[1], m[2], m[3], m[4], privacy, m[6], fromP[0], True],
+                    [m[0], m[1], m[2], m[3], m[4], privacy, m[6], m[7], True],
                     m_t],
                     ['method',
                     [to[m_t][0], to[m_t][1], to[m_t][2], to[m_t][3], to[m_t][4],
@@ -428,11 +430,11 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
         privacy = fromP[1]
     if i_t not in to.keys() and i_t not in conflicts.keys():
         return (True, [i[0], i[1], i[2], privacy, i[4],
-                fromP[0], printable])
+                i[5], printable])
     elif i_t in conflicts.keys():
         if (fromP[0] == conflicts[i_t][0]):
             return (True, [i[0], i[1], i[2], conflicts[i_t][1], i[4],
-                    conflicts[i_t][0], printable])
+                    i[5], printable])
         else:
             return (False, [])
     else:  # already in
@@ -440,7 +442,7 @@ def editInstance(fromP, i_t, i, to, toWho, conflicts):
             return (False, [])
         else:
             return (False, [i_t,
-                    ['instance', [i[0], i[1], i[2], privacy, i[4], fromP[0], True]],
+                    ['instance', [i[0], i[1], i[2], privacy, i[4], i[5], True]],
                      ['instance', [to[i_t][0], to[i_t][1], to[i_t][2], to[i_t][3],
                       to[i_t][4], to[i_t][5], True]]
                     ])
@@ -489,7 +491,7 @@ def makeClassesComplete(cs):
                             if conf:
                                 cs[item][4].append([ins,
                                                    ['method', cs[item][1][conf[0]], conf[0]],
-                                                   ['instance', newI]])
+                                                    ['instance', newI]])
                                 del cs[item][1][conf[0]]
                             else:
                                 cs[item][2][ins] = newI
@@ -497,8 +499,8 @@ def makeClassesComplete(cs):
                             del cs[item][2][ins]
                             cs[item][4].append(newI)
                     # pridaj vsetky konflikty
-                    for parCon in cs[par][4]:
-                        cs[item][4].append(parCon)
+                    # for parCon in cs[par][4]:
+                    #    cs[item][4].append(parCon)
                 # add to solved classes (closed)
                 closed.append(item)
                 # remove from opened
@@ -655,10 +657,10 @@ def getXMLClassDetails(name, atts, t):
                         makeXMLInstance(con[0], con[1][1], priv, False)
                     else:
                         makeXMLMethod(con[1][2], con[1][1], priv, False)
-                    if con[2][0] == 'instance':
-                        makeXMLInstance(con[0], con[2][1], priv, False)
-                    else:
-                        makeXMLMethod(con[2][2], con[2][1], priv, False)
+                    # if con[2][0] == 'instance':
+                    #    makeXMLInstance(con[0], con[2][1], priv, False)
+                    # else:
+                    #    makeXMLMethod(con[2][2], con[2][1], priv, False)
                 else:
                     priv1 = SubElement(cl, privacy1)
                     priv2 = SubElement(cl, privacy2)
